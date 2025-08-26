@@ -1,0 +1,40 @@
+from fastapi import Depends, HTTPException, status, Request
+from sqlalchemy.orm import Session
+from .db import get_db
+from .models import User, UserRole
+from .services.auth import get_current_user
+
+
+def require_role(required_role: UserRole):
+    """Зависимость для проверки роли пользователя"""
+    def role_checker(current_user: User = Depends(get_current_user)):
+        if current_user.role != required_role and current_user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Недостаточно прав для выполнения операции"
+            )
+        return current_user
+    return role_checker
+
+
+def require_admin_or_manager():
+    """Зависимость для проверки роли admin или manager"""
+    def role_checker(current_user: User = Depends(get_current_user)):
+        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Недостаточно прав для выполнения операции"
+            )
+        return current_user
+    return role_checker
+
+
+def get_current_user_optional(request: Request):
+    """Получить текущего пользователя (опционально)"""
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return None
+    
+    # Здесь нужно получить пользователя из БД
+    # Пока возвращаем None для простоты
+    return None

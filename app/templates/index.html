@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Сириус{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">
+            Система учёта склада «Сириус»
+        </h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Простой и надёжный учёт товаров, заказов и поставок с удобной веб-админкой
+        </p>
+    </div>
+
+    <!-- Карточки-ссылки -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <!-- Управление складом -->
+        <a href="/products" class="block group">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 hover:shadow-md transition-shadow duration-200">
+                <div class="text-center">
+                    <div class="mx-auto h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors duration-200">
+                        <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-200">
+                        Управление складом
+                    </h3>
+                    <p class="text-gray-600">
+                        Добавление товаров, управление поставками, контроль остатков
+                    </p>
+                </div>
+            </div>
+        </a>
+
+        <!-- Обработка заказов -->
+        <a href="/orders" class="block group">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 hover:shadow-md transition-shadow duration-200">
+                <div class="text-center">
+                    <div class="mx-auto h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors duration-200">
+                        <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-green-600 transition-colors duration-200">
+                        Обработка заказов
+                    </h3>
+                    <p class="text-gray-600">
+                        Создание заказов, изменение статусов, выдача товаров
+                    </p>
+                </div>
+            </div>
+        </a>
+
+        <!-- Аналитика -->
+        <a href="/admin/analytics" class="block group">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 hover:shadow-md transition-shadow duration-200">
+                <div class="text-center">
+                    <div class="mx-auto h-16 w-16 bg-purple-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors duration-200">
+                        <svg class="h-8 w-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors duration-200">
+                        Аналитика
+                    </h3>
+                    <p class="text-gray-600">
+                        Отчёты по продажам, доходность, экспорт данных
+                    </p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Дополнительная информация -->
+    <div class="mt-16 text-center">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-4xl mx-auto">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+                Возможности системы
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                <div>
+                    <h3 class="font-medium text-gray-900 mb-2">Для администраторов</h3>
+                    <ul class="text-gray-600 space-y-1 text-sm">
+                        <li>• Управление пользователями и ролями</li>
+                        <li>• Полный контроль над складом и заказами</li>
+                        <li>• Просмотр логов и аналитики</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-900 mb-2">Для операторов</h3>
+                    <ul class="text-gray-600 space-y-1 text-sm">
+                        <li>• Просмотр склада и создание заказов</li>
+                        <li>• Обработка заказов и изменение статусов</li>
+                        <li>• Удобный интерфейс без лишних функций</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
