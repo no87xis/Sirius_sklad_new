@@ -47,6 +47,16 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     return user
 
 
+def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> User | None:
+    """Получить текущего пользователя (опционально)"""
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return None
+    
+    user = db.query(User).filter(User.username == user_id).first()
+    return user
+
+
 def create_user(db: Session, username: str, password: str, role: str = "user") -> User:
     """Создание нового пользователя"""
     # Проверка существования пользователя

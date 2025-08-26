@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from ..db import get_db
-from ..services.auth import authenticate_user, create_user
+from ..services.auth import authenticate_user, create_user, get_current_user_optional
 from ..models import UserRole
 
 router = APIRouter()
@@ -11,9 +11,10 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/login")
-async def login_page(request: Request):
+async def login_page(request: Request, db: Session = Depends(get_db)):
     """Страница входа"""
-    return templates.TemplateResponse("login.html", {"request": request})
+    current_user = get_current_user_optional(request, db)
+    return templates.TemplateResponse("login.html", {"request": request, "current_user": current_user})
 
 
 @router.post("/login")
@@ -37,9 +38,10 @@ async def login(
 
 
 @router.get("/register")
-async def register_page(request: Request):
+async def register_page(request: Request, db: Session = Depends(get_db)):
     """Страница регистрации"""
-    return templates.TemplateResponse("register.html", {"request": request})
+    current_user = get_current_user_optional(request, db)
+    return templates.TemplateResponse("register.html", {"request": request, "current_user": current_user})
 
 
 @router.post("/register")

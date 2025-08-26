@@ -1,10 +1,12 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from sqlalchemy.orm import Session
 from .config import settings
-from .db import engine, Base
+from .db import engine, Base, get_db
 from .routers import web_public, web_admin, api
+from .services.auth import get_current_user_optional
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -36,9 +38,10 @@ app.include_router(api.router, prefix="/api")
 
 
 @app.get("/")
-async def root(request: Request):
+async def root(request: Request, db: Session = Depends(get_db)):
     """Главная страница"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    current_user = get_current_user_optional(request, db)
+    return templates.TemplateResponse("index.html", {"request": request, "current_user": current_user})
 
 
 if __name__ == "__main__":
