@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Склад - Сириус{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-3xl font-bold text-gray-900">Управление складом</h1>
+            <p class="mt-2 text-sm text-gray-700">
+                Просмотр и управление товарами, контроль остатков и поставок
+            </p>
+        </div>
+        {% if current_user and current_user.role in ['admin', 'manager'] %}
+        <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+            <a href="/products/new" class="inline-flex items-center justify-center rounded-md border border-transparent bg-sirius-blue px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-sirius-indigo focus:outline-none focus:ring-2 focus:ring-sirius-blue focus:ring-offset-2 sm:w-auto">
+                Добавить товар
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Таблица товаров -->
+    <div class="mt-8 flex flex-col">
+        <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Товар
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Остаток
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Мин. остаток
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Цена (€)
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Цена (₽)
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Поставщик
+                                </th>
+                                <th scope="col" class="relative px-6 py-3">
+                                    <span class="sr-only">Действия</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% if products %}
+                                {% for product in products %}
+                                <tr class="{% if product.is_low_stock %}bg-red-50{% endif %}">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                                    <span class="text-sm font-medium text-gray-700">{{ product.name[0].upper() }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    <a href="/products/{{ product.id }}" class="hover:text-sirius-blue">
+                                                        {{ product.name }}
+                                                    </a>
+                                                </div>
+                                                {% if product.description %}
+                                                <div class="text-sm text-gray-500">{{ product.description[:50] }}{% if product.description|length > 50 %}...{% endif %}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">
+                                            <span class="{% if product.is_low_stock %}text-red-600 font-semibold{% endif %}">
+                                                {{ product.stock }}
+                                            </span>
+                                            {% if product.is_low_stock %}
+                                            <span class="ml-1 text-xs text-red-500">⚠️ Низкий остаток</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-xs text-gray-500">из {{ product.quantity }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ product.min_stock }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {% if product.buy_price_eur %}
+                                            €{{ "%.2f"|format(product.buy_price_eur) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {% if product.sell_price_rub %}
+                                            ₽{{ "%.2f"|format(product.sell_price_rub) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ product.supplier_name or '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <div class="flex space-x-2">
+                                            <a href="/products/{{ product.id }}" class="text-sirius-blue hover:text-sirius-indigo">
+                                                Просмотр
+                                            </a>
+                                            {% if current_user and current_user.role in ['admin', 'manager'] %}
+                                            <a href="/products/{{ product.id }}/edit" class="text-indigo-600 hover:text-indigo-900">
+                                                Редактировать
+                                            </a>
+                                            <a href="/products/{{ product.id }}/supplies/new" class="text-green-600 hover:text-green-900">
+                                                Поставка
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="text-center">
+                                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                            </svg>
+                                            <h3 class="mt-2 text-sm font-medium text-gray-900">Нет товаров</h3>
+                                            <p class="mt-1 text-sm text-gray-500">
+                                                {% if current_user and current_user.role in ['admin', 'manager'] %}
+                                                Начните с добавления первого товара.
+                                                {% else %}
+                                                Товары пока не добавлены.
+                                                {% endif %}
+                                            </p>
+                                            {% if current_user and current_user.role in ['admin', 'manager'] %}
+                                            <div class="mt-6">
+                                                <a href="/products/new" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-sirius-blue hover:bg-sirius-indigo focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sirius-blue">
+                                                    Добавить товар
+                                                </a>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
