@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Анализ прибыли - Сириус{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Анализ прибыли</h1>
+                <p class="mt-2 text-gray-600">Анализ рентабельности и прибыльности</p>
+            </div>
+            <a href="/admin/analytics" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                ← Назад к аналитике
+            </a>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Фильтры</h3>
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
+                <input type="date" name="start_date" id="start_date" value="{{ start_date or '' }}"
+                       class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
+                <input type="date" name="end_date" id="end_date" value="{{ end_date or '' }}"
+                       class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
+                    Применить
+                </button>
+                <a href="/admin/analytics/profit" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                    Сбросить
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Общая статистика -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Общая выручка</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ "%.2f"|format(analysis.total_revenue) }} ₽</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Общие затраты</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ "%.2f"|format(analysis.total_cost) }} ₽</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Чистая прибыль</p>
+                    <p class="text-2xl font-semibold {% if analysis.total_profit >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ "%.2f"|format(analysis.total_profit) }} ₽
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Рентабельность</p>
+                    <p class="text-2xl font-semibold {% if analysis.profit_margin >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if analysis.total_revenue > 0 %}
+                            {{ "%.1f"|format(analysis.profit_margin) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- График прибыли -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Динамика прибыли</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">{{ "%.2f"|format(analysis.total_revenue) }} ₽</div>
+                <div class="text-sm text-gray-600">Выручка</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-red-600">{{ "%.2f"|format(analysis.total_cost) }} ₽</div>
+                <div class="text-sm text-gray-600">Затраты</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold {% if analysis.total_profit >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ "%.2f"|format(analysis.total_profit) }} ₽
+                </div>
+                <div class="text-sm text-gray-600">Прибыль</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Анализ по товарам -->
+    <div class="bg-white rounded-lg shadow mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Анализ прибыли по товарам</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Товар</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Продано</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Выручка</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Затраты</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Прибыль</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Рентабельность</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Средняя цена</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for product in analysis.product_analysis %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ product.product_name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.quantity_sold }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.2f"|format(product.revenue) }} ₽</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.2f"|format(product.cost) }} ₽</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm {% if product.profit >= 0 %}text-green-600 font-medium{% else %}text-red-600 font-medium{% endif %}">
+                            {{ "%.2f"|format(product.profit) }} ₽
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm {% if product.profit_margin >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if product.revenue > 0 %}
+                                {{ "%.1f"|format(product.profit_margin) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.2f"|format(product.avg_price) }} ₽</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
+                            Данные не найдены
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Топ товаров по прибыли -->
+    {% if analysis.top_profitable_products %}
+    <div class="bg-white rounded-lg shadow mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Топ товаров по прибыли</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for product in analysis.top_profitable_products %}
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-medium text-gray-900">{{ product.product_name }}</h4>
+                        <span class="text-sm font-medium text-green-600">{{ "%.2f"|format(product.profit) }} ₽</span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <div>Продано: {{ product.quantity_sold }} шт.</div>
+                        <div>Выручка: {{ "%.2f"|format(product.revenue) }} ₽</div>
+                        <div>Рентабельность: {{ "%.1f"|format(product.profit_margin) }}%</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Товары с убытками -->
+    {% if analysis.loss_making_products %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div class="flex items-center mb-4">
+            <svg class="h-6 w-6 text-red-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <h3 class="text-lg font-semibold text-red-800">Товары с убытками</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for product in analysis.loss_making_products %}
+            <div class="bg-white rounded-lg p-4 border border-red-200">
+                <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-medium text-gray-900">{{ product.product_name }}</h4>
+                    <span class="text-sm font-medium text-red-600">{{ "%.2f"|format(product.profit) }} ₽</span>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <div>Продано: {{ product.quantity_sold }} шт.</div>
+                    <div>Выручка: {{ "%.2f"|format(product.revenue) }} ₽</div>
+                    <div>Затраты: {{ "%.2f"|format(product.cost) }} ₽</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
