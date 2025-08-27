@@ -10,9 +10,15 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy.orm import Session
 from app.db import SessionLocal, engine, Base
 from app.models import User, Product, Supply, Order, OperationLog, UserRole
+from app.models.order import OrderStatus
 from app.services.auth import get_password_hash
 from datetime import datetime, timedelta
+from decimal import Decimal
 import random
+
+# Безопасное приведение к Decimal
+def D(x):
+    return x if isinstance(x, Decimal) else Decimal(str(x))
 
 def create_demo_data():
     """Создание демо-данных для системы"""
@@ -54,7 +60,11 @@ def create_demo_data():
             }
         ]
         
+        # Идемпотентность: не дублируем пользователей
+        existing_usernames = {u[0] for u in db.query(User.username).all()}
         for user_data in users_data:
+            if user_data["username"] in existing_usernames:
+                continue
             user = User(
                 username=user_data["username"],
                 hashed_password=get_password_hash(user_data["password"]),
@@ -73,8 +83,8 @@ def create_demo_data():
                 "description": "Бизнес-ноутбук 15.6\", Intel Core i5, 8GB RAM, 256GB SSD",
                 "quantity": 15,
                 "min_stock": 5,
-                "buy_price_eur": 850.0,
-                "sell_price_rub": 95000.0,
+                "buy_price_eur": D("850.0"),
+                "sell_price_rub": D("95000.0"),
                 "supplier_name": "Dell Technologies"
             },
             {
@@ -82,8 +92,8 @@ def create_demo_data():
                 "description": "Монитор 24\" Full HD, IPS, HDMI, VGA",
                 "quantity": 25,
                 "min_stock": 8,
-                "buy_price_eur": 120.0,
-                "sell_price_rub": 15000.0,
+                "buy_price_eur": D("120.0"),
+                "sell_price_rub": D("15000.0"),
                 "supplier_name": "Samsung Electronics"
             },
             {
@@ -91,8 +101,8 @@ def create_demo_data():
                 "description": "Беспроводная клавиатура с подсветкой, мультиустройство",
                 "quantity": 40,
                 "min_stock": 10,
-                "buy_price_eur": 45.0,
-                "sell_price_rub": 5500.0,
+                "buy_price_eur": D("45.0"),
+                "sell_price_rub": D("5500.0"),
                 "supplier_name": "Logitech"
             },
             {
@@ -100,8 +110,8 @@ def create_demo_data():
                 "description": "Беспроводная мышь с точным сенсором, эргономичная",
                 "quantity": 30,
                 "min_stock": 8,
-                "buy_price_eur": 65.0,
-                "sell_price_rub": 7500.0,
+                "buy_price_eur": D("65.0"),
+                "sell_price_rub": D("7500.0"),
                 "supplier_name": "Logitech"
             },
             {
@@ -109,8 +119,8 @@ def create_demo_data():
                 "description": "Лазерный принтер A4, монохромный, 25 стр/мин",
                 "quantity": 8,
                 "min_stock": 3,
-                "buy_price_eur": 280.0,
-                "sell_price_rub": 32000.0,
+                "buy_price_eur": D("280.0"),
+                "sell_price_rub": D("32000.0"),
                 "supplier_name": "HP Inc."
             },
             {
@@ -118,8 +128,8 @@ def create_demo_data():
                 "description": "Планшетный сканер A4, 4800 DPI, USB",
                 "quantity": 12,
                 "min_stock": 4,
-                "buy_price_eur": 95.0,
-                "sell_price_rub": 11500.0,
+                "buy_price_eur": D("95.0"),
+                "sell_price_rub": D("11500.0"),
                 "supplier_name": "Canon"
             },
             {
@@ -127,8 +137,8 @@ def create_demo_data():
                 "description": "USB 3.0 флешка 32GB, высокая скорость чтения/записи",
                 "quantity": 100,
                 "min_stock": 20,
-                "buy_price_eur": 8.0,
-                "sell_price_rub": 1200.0,
+                "buy_price_eur": D("8.0"),
+                "sell_price_rub": D("1200.0"),
                 "supplier_name": "Kingston Technology"
             },
             {
@@ -136,8 +146,8 @@ def create_demo_data():
                 "description": "Внешний жесткий диск 1TB, USB 3.0, портативный",
                 "quantity": 20,
                 "min_stock": 6,
-                "buy_price_eur": 55.0,
-                "sell_price_rub": 6500.0,
+                "buy_price_eur": D("55.0"),
+                "sell_price_rub": D("6500.0"),
                 "supplier_name": "Seagate Technology"
             },
             {
@@ -145,8 +155,8 @@ def create_demo_data():
                 "description": "Сетевая карта PCI-E, Gigabit Ethernet, 10/100/1000 Mbps",
                 "quantity": 35,
                 "min_stock": 10,
-                "buy_price_eur": 25.0,
-                "sell_price_rub": 3000.0,
+                "buy_price_eur": D("25.0"),
+                "sell_price_rub": D("3000.0"),
                 "supplier_name": "Intel Corporation"
             },
             {
@@ -154,14 +164,18 @@ def create_demo_data():
                 "description": "Блок питания 650W, 80+ Bronze, модульный",
                 "quantity": 18,
                 "min_stock": 5,
-                "buy_price_eur": 75.0,
-                "sell_price_rub": 9000.0,
+                "buy_price_eur": D("75.0"),
+                "sell_price_rub": D("9000.0"),
                 "supplier_name": "Corsair"
             }
         ]
         
         products = []
+        # Идемпотентность по имени: если товар уже есть — пропускаем
+        existing_names = {p[0] for p in db.query(Product.name).all()}
         for product_data in products_data:
+            if product_data["name"] in existing_names:
+                continue
             product = Product(**product_data)
             db.add(product)
             products.append(product)
@@ -171,6 +185,8 @@ def create_demo_data():
         
         # 3. Создание поставок
         print("Создание поставок...")
+        if not products:
+            products = db.query(Product).all()
         suppliers = ["Dell Technologies", "Samsung Electronics", "Logitech", "HP Inc.", "Canon", 
                     "Kingston Technology", "Seagate Technology", "Intel Corporation", "Corsair"]
         
@@ -179,14 +195,14 @@ def create_demo_data():
             product = random.choice(products)
             supplier = random.choice(suppliers)
             qty = random.randint(5, 50)
-            buy_price = product.buy_price_eur * random.uniform(0.8, 1.2)  # ±20% от базовой цены
+            # Все расчеты на Decimal; коэффициенты — тоже Decimal (строка!)
+            buy_price = D(product.buy_price_eur) * D(random.uniform(0.8, 1.2))
             
             supply = Supply(
                 product_id=product.id,
                 supplier_name=supplier,
                 qty=qty,
-                buy_price_eur=buy_price,
-                delivery_date=datetime.now() - timedelta(days=random.randint(1, 30))
+                buy_price_eur=buy_price
             )
             db.add(supply)
             supplies.append(supply)
@@ -218,12 +234,13 @@ def create_demo_data():
             
             order = Order(
                 customer_name=customer["name"],
-                customer_phone=customer["phone"],
+                phone=customer["phone"],
                 product_id=product.id,
+                product_name=product.name,
                 qty=qty,
+                unit_price_rub=product.sell_price_rub,
                 user_id=user.username,
-                issue_date=datetime.now() - timedelta(days=random.randint(1, 60)),
-                status="issued"
+                status=OrderStatus.PAID_ISSUED
             )
             db.add(order)
             orders.append(order)
