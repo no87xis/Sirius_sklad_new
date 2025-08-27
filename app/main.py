@@ -5,7 +5,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from .config import settings
 from .db import engine, Base, get_db
-from .routers import web_public, web_admin, web_products, api
+from .routers import web_public, web_admin, web_products, web_orders, api
 from .services.auth import get_current_user_optional
 
 # Create tables
@@ -35,6 +35,7 @@ templates = Jinja2Templates(directory="app/templates")
 app.include_router(web_public.router)
 app.include_router(web_admin.router, prefix="/admin")
 app.include_router(web_products.router)
+app.include_router(web_orders.router)
 app.include_router(api.router, prefix="/api")
 
 
