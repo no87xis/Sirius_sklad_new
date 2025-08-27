@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Новый товар - Сириус{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Заголовок -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Новый товар</h1>
+                    <p class="mt-2 text-sm text-gray-700">
+                        Добавьте новый товар в систему учёта
+                    </p>
+                </div>
+                <a href="/products" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sirius-blue">
+                    <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Назад к складу
+                </a>
+            </div>
+        </div>
+
+        <!-- Форма создания товара -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <form method="POST" class="space-y-6">
+                    <!-- Основная информация -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Основная информация</h3>
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                                <label for="name" class="block text-sm font-medium text-gray-700">
+                                    Название товара *
+                                </label>
+                                <input type="text" name="name" id="name" required
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                       placeholder="Введите название товара">
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <label for="description" class="block text-sm font-medium text-gray-700">
+                                    Описание
+                                </label>
+                                <textarea name="description" id="description" rows="3"
+                                          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                          placeholder="Краткое описание товара"></textarea>
+                            </div>
+
+                            <div>
+                                <label for="supplier_name" class="block text-sm font-medium text-gray-700">
+                                    Поставщик
+                                </label>
+                                <input type="text" name="supplier_name" id="supplier_name"
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                       placeholder="Название поставщика">
+                            </div>
+
+                            <div>
+                                <label for="initial_quantity" class="block text-sm font-medium text-gray-700">
+                                    Начальное количество
+                                </label>
+                                <input type="number" name="initial_quantity" id="initial_quantity" value="0" min="0"
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Цены и остатки -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Цены и остатки</h3>
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                            <div>
+                                <label for="buy_price_eur" class="block text-sm font-medium text-gray-700">
+                                    Цена закупки (€)
+                                </label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">€</span>
+                                    </div>
+                                    <input type="number" name="buy_price_eur" id="buy_price_eur" step="0.01" min="0"
+                                           class="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                           placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="sell_price_rub" class="block text-sm font-medium text-gray-700">
+                                    Цена продажи (₽)
+                                </label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">₽</span>
+                                    </div>
+                                    <input type="number" name="sell_price_rub" id="sell_price_rub" step="0.01" min="0"
+                                           class="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                           placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="min_stock" class="block text-sm font-medium text-gray-700">
+                                    Минимальный остаток
+                                </label>
+                                <input type="number" name="min_stock" id="min_stock" value="0" min="0"
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">При достижении этого количества будет показано предупреждение</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Кнопки действий -->
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <a href="/products" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sirius-blue">
+                            Отмена
+                        </a>
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-sirius-blue hover:bg-sirius-indigo focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sirius-blue">
+                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Создать товар
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

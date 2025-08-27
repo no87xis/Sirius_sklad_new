@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Новая поставка - Сириус{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Заголовок -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Новая поставка</h1>
+                    <p class="mt-2 text-sm text-gray-700">
+                        Добавьте поставку для товара "{{ product.name }}"
+                    </p>
+                </div>
+                <a href="/products/{{ product.id }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sirius-blue">
+                    <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Назад к товару
+                </a>
+            </div>
+        </div>
+
+        <!-- Информация о товаре -->
+        <div class="bg-white shadow sm:rounded-lg mb-6">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Информация о товаре</h3>
+                
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Название</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ product.name }}</dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Текущий остаток</dt>
+                        <dd class="mt-1 text-sm font-semibold {% if product.is_low_stock %}text-red-600{% else %}text-gray-900{% endif %}">
+                            {{ product.stock }} шт.
+                            {% if product.is_low_stock %}
+                            <span class="ml-1 text-xs text-red-500">⚠️ Низкий остаток</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Общий приход</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ product.quantity }} шт.</dd>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Форма добавления поставки -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <form method="POST" class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Детали поставки</h3>
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                                <label for="qty" class="block text-sm font-medium text-gray-700">
+                                    Количество *
+                                </label>
+                                <input type="number" name="qty" id="qty" required min="1"
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                       placeholder="Введите количество">
+                                <p class="mt-1 text-xs text-gray-500">Количество товара в поставке</p>
+                            </div>
+
+                            <div>
+                                <label for="buy_price_eur" class="block text-sm font-medium text-gray-700">
+                                    Цена за единицу (€) *
+                                </label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">€</span>
+                                    </div>
+                                    <input type="number" name="buy_price_eur" id="buy_price_eur" required step="0.01" min="0"
+                                           class="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                           placeholder="0.00">
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">Цена закупки за единицу товара</p>
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <label for="supplier_name" class="block text-sm font-medium text-gray-700">
+                                    Поставщик *
+                                </label>
+                                <input type="text" name="supplier_name" id="supplier_name" required
+                                       value="{{ product.supplier_name or '' }}"
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                       placeholder="Название поставщика">
+                                <p class="mt-1 text-xs text-gray-500">Название компании-поставщика</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Предварительный расчет -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="text-sm font-medium text-gray-900 mb-3">Предварительный расчет</h4>
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <div>
+                                <dt class="text-xs font-medium text-gray-500">Текущий остаток</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ product.stock }} шт.</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-medium text-gray-500">Новая поставка</dt>
+                                <dd class="mt-1 text-sm text-gray-900">
+                                    <span id="new-supply-qty">0</span> шт.
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-medium text-gray-500">Итоговый остаток</dt>
+                                <dd class="mt-1 text-sm font-semibold text-gray-900">
+                                    <span id="final-stock">{{ product.stock }}</span> шт.
+                                </dd>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Кнопки действий -->
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <a href="/products/{{ product.id }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sirius-blue">
+                            Отмена
+                        </a>
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Добавить поставку
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Простой JavaScript для предварительного расчета
+document.addEventListener('DOMContentLoaded', function() {
+    const qtyInput = document.getElementById('qty');
+    const newSupplyQty = document.getElementById('new-supply-qty');
+    const finalStock = document.getElementById('final-stock');
+    const currentStock = {{ product.stock }};
+
+    function updateCalculation() {
+        const qty = parseInt(qtyInput.value) || 0;
+        newSupplyQty.textContent = qty;
+        finalStock.textContent = currentStock + qty;
+    }
+
+    qtyInput.addEventListener('input', updateCalculation);
+});
+</script>
+{% endblock %}
