@@ -89,7 +89,7 @@ async def create_product_post(
 
 
 
-@router.get("/products/{product_id}/supplies/new", response_class=HTMLResponse)
+@router.get("/products/{product_id:int}/supplies/new", response_class=HTMLResponse)
 async def new_supply_page(
     request: Request,
     product_id: int,
@@ -107,7 +107,7 @@ async def new_supply_page(
     )
 
 
-@router.post("/products/{product_id}/supplies", response_class=HTMLResponse)
+@router.post("/products/{product_id:int}/supplies", response_class=HTMLResponse)
 async def create_supply_post(
     request: Request,
     product_id: int,
