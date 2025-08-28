@@ -49,8 +49,8 @@ async def create_product_post(
     name: str = Form(...),
     description: Optional[str] = Form(None),
     min_stock: int = Form(0),
-    buy_price_eur: Optional[float] = Form(None),
-    sell_price_rub: Optional[float] = Form(None),
+    buy_price_eur: Optional[str] = Form(None),
+    sell_price_rub: Optional[str] = Form(None),
     supplier_name: Optional[str] = Form(None),
     initial_quantity: int = Form(0),
     db: Session = Depends(get_db),
@@ -58,12 +58,14 @@ async def create_product_post(
 ):
     """Создание нового товара"""
     try:
+        from decimal import Decimal
+        
         product_data = ProductCreate(
             name=name,
             description=description,
             min_stock=min_stock,
-            buy_price_eur=buy_price_eur,
-            sell_price_rub=sell_price_rub,
+            buy_price_eur=Decimal(buy_price_eur) if buy_price_eur else None,
+            sell_price_rub=Decimal(sell_price_rub) if sell_price_rub else None,
             supplier_name=supplier_name,
             initial_quantity=initial_quantity
         )

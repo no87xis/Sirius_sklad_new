@@ -77,8 +77,8 @@ async def create_order_post(
     client_city: Optional[str] = Form(None),
     product_id: int = Form(...),
     qty: int = Form(...),
-    unit_price_rub: float = Form(...),
-    eur_rate: float = Form(...),
+    unit_price_rub: str = Form(...),
+    eur_rate: str = Form(...),
     payment_method: str = Form(...),
     payment_note: Optional[str] = Form(None),
     db: Session = Depends(get_db),
@@ -96,8 +96,8 @@ async def create_order_post(
             client_city=client_city,
             product_id=product_id,
             qty=qty,
-            unit_price_rub=Decimal(str(unit_price_rub)),
-            eur_rate=Decimal(str(eur_rate)),
+            unit_price_rub=Decimal(unit_price_rub),
+            eur_rate=Decimal(eur_rate),
             payment_method=PaymentMethod(payment_method),
             payment_note=payment_note
         )
