@@ -22,7 +22,9 @@ app = FastAPI(
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.secret_key,
-    max_age=settings.session_max_age
+    max_age=settings.session_max_age,
+    same_site="lax",  # Улучшенная совместимость с браузерами
+    https_only=False  # Разрешаем HTTP для локальной разработки
 )
 
 # Mount static files

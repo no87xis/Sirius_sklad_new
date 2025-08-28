@@ -25,8 +25,11 @@ async def login(
     db: Session = Depends(get_db)
 ):
     """Обработка входа"""
+    print(f"🔐 Попытка входа: {username}")  # Отладочная информация
+    
     user = authenticate_user(db, username, password)
     if not user:
+        print(f"❌ Аутентификация не удалась для {username}")
         return RedirectResponse(
             url="/login?error=Неверное имя пользователя или пароль",
             status_code=status.HTTP_302_FOUND
@@ -34,6 +37,8 @@ async def login(
     
     # Установка сессии
     request.session["user_id"] = user.username
+    print(f"✅ Сессия установлена для {user.username}: {request.session.get('user_id')}")
+    
     return RedirectResponse(url="/?success=Успешный вход", status_code=status.HTTP_302_FOUND)
 
 
@@ -77,3 +82,20 @@ async def logout(request: Request):
     """Выход из системы"""
     request.session.clear()
     return RedirectResponse(url="/?success=Вы вышли из системы", status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/debug-session")
+async def debug_session(request: Request, db: Session = Depends(get_db)):
+    """Отладочная информация о сессии"""
+    current_user = get_current_user_optional(request, db)
+    
+    debug_info = {
+        "session_data": dict(request.session),
+        "user_id_in_session": request.session.get("user_id"),
+        "current_user": current_user.username if current_user else None,
+        "user_role": current_user.role if current_user else None,
+        "headers": dict(request.headers),
+        "cookies": dict(request.cookies)
+    }
+    
+    return {"debug_info": debug_info}

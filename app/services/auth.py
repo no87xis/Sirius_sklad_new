@@ -50,10 +50,17 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
 def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> User | None:
     """Получить текущего пользователя (опционально)"""
     user_id = request.session.get("user_id")
+    print(f"🔍 Проверка сессии: user_id={user_id}, session={dict(request.session)}")  # Отладочная информация
+    
     if not user_id:
         return None
     
     user = db.query(User).filter(User.username == user_id).first()
+    if user:
+        print(f"✅ Пользователь найден: {user.username}")
+    else:
+        print(f"❌ Пользователь не найден для user_id: {user_id}")
+    
     return user
 
 
