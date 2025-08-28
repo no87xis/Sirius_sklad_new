@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, exc
 from typing import List, Optional
 from ..models import Product, Supply, Order, OrderStatus
 from ..schemas.product import ProductCreate, ProductUpdate
@@ -124,14 +124,16 @@ def delete_product(db: Session, product_id: int) -> bool:
         print(f"✅ Товар {product.name} успешно удален")  # Отладка
         return True
         
+    except exc.IntegrityError as e:
+        db.rollback()
+        print(f"❌ FK ошибка при удалении товара {product_id}: {e}")  # Отладка
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Товар связан с заказами или поставками и не может быть удален"
+        )
     except Exception as e:
         db.rollback()
         print(f"❌ Ошибка при удалении товара {product_id}: {e}")  # Отладка
-        if "foreign key constraint" in str(e).lower() or "integrity" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Товар используется в заказах или поставках и не может быть удален"
-            )
         raise e
 
 

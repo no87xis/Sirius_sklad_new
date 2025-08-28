@@ -125,7 +125,7 @@ async def search_orders_page(
 
 
 
-@router.get("/orders/{order_id}/edit", response_class=HTMLResponse)
+@router.get("/orders/{order_id:int}/edit", response_class=HTMLResponse)
 async def edit_order_page(
     request: Request, 
     order_id: int, 
@@ -149,7 +149,7 @@ async def edit_order_page(
         }
     )
 
-@router.post("/orders/{order_id}", response_class=HTMLResponse)
+@router.post("/orders/{order_id:int}", response_class=HTMLResponse)
 async def update_order_post(
     request: Request,
     order_id: int,
@@ -184,7 +184,7 @@ async def update_order_post(
     except Exception as e:
         return RedirectResponse(url=f"/orders/{order_id}/edit?error={str(e)}", status_code=status.HTTP_302_FOUND)
 
-@router.post("/orders/{order_id}/status", response_class=HTMLResponse)
+@router.post("/orders/{order_id:int}/status", response_class=HTMLResponse)
 async def update_order_status_post(
     request: Request,
     order_id: int,
@@ -200,7 +200,7 @@ async def update_order_status_post(
     except Exception as e:
         return RedirectResponse(url=f"/orders/{order_id}?error={str(e)}", status_code=302)
 
-@router.post("/orders/{order_id}/delete", response_class=HTMLResponse)
+@router.post("/orders/{order_id:int}/delete", response_class=HTMLResponse)
 async def delete_order_post(
     request: Request,
     order_id: int,
@@ -216,7 +216,7 @@ async def delete_order_post(
 
 
 # Параметрические маршруты (после всех статических)
-@router.get("/orders/{order_id}", response_class=HTMLResponse)
+@router.get("/orders/{order_id:int}", response_class=HTMLResponse)
 async def order_detail_page(
     request: Request, 
     order_id: int, 
@@ -232,6 +232,10 @@ async def order_detail_page(
         "orders/detail.html", 
         {"request": request, "current_user": current_user, "order": order}
     )
+
+
+# Параметрические маршруты (после всех статических)
+
 
 
 

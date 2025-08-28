@@ -138,8 +138,11 @@ async def create_supply_post(
         )
 
 
+
+
+
 # Параметрические маршруты (после всех статических)
-@router.get("/products/{product_id}", response_class=HTMLResponse)
+@router.get("/products/{product_id:int}", response_class=HTMLResponse)
 async def product_detail_page(
     request: Request,
     product_id: int,
@@ -164,7 +167,7 @@ async def product_detail_page(
     )
 
 
-@router.get("/products/{product_id}/edit", response_class=HTMLResponse)
+@router.get("/products/{product_id:int}/edit", response_class=HTMLResponse)
 async def edit_product_page(
     request: Request,
     product_id: int,
@@ -182,7 +185,7 @@ async def edit_product_page(
     )
 
 
-@router.post("/products/{product_id}", response_class=HTMLResponse)
+@router.post("/products/{product_id:int}", response_class=HTMLResponse)
 async def update_product_post(
     request: Request,
     product_id: int,
@@ -218,7 +221,7 @@ async def update_product_post(
         )
 
 
-@router.post("/products/{product_id}/delete", response_class=HTMLResponse)
+@router.post("/products/{product_id:int}/delete", response_class=HTMLResponse)
 async def delete_product_post(
     request: Request,
     product_id: int,
