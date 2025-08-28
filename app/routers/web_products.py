@@ -158,29 +158,7 @@ async def delete_product_post(
         )
 
 
-@router.get("/products/{product_id}", response_class=HTMLResponse)
-async def product_detail_page(
-    request: Request,
-    product_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user_optional)
-):
-    """Страница детальной информации о товаре"""
-    product = get_product(db, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Товар не найден")
-    
-    supplies = get_product_supplies(db, product_id)
-    
-    return templates.TemplateResponse(
-        "products/detail.html",
-        {
-            "request": request, 
-            "current_user": current_user, 
-            "product": product,
-            "supplies": supplies
-        }
-    )
+
 
 
 @router.get("/products/{product_id}/supplies/new", response_class=HTMLResponse)
@@ -230,3 +208,28 @@ async def create_supply_post(
             url=f"/products/{product_id}/supplies/new?error={str(e)}",
             status_code=status.HTTP_302_FOUND
         )
+
+
+@router.get("/products/{product_id}", response_class=HTMLResponse)
+async def product_detail_page(
+    request: Request,
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user_optional)
+):
+    """Страница детальной информации о товаре"""
+    product = get_product(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    
+    supplies = get_product_supplies(db, product_id)
+    
+    return templates.TemplateResponse(
+        "products/detail.html",
+        {
+            "request": request, 
+            "current_user": current_user, 
+            "product": product,
+            "supplies": supplies
+        }
+    )

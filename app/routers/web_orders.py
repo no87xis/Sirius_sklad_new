@@ -123,22 +123,7 @@ async def search_orders_page(
         {"request": request, "current_user": current_user, "orders": orders, "phone": phone}
     )
 
-@router.get("/orders/{order_id}", response_class=HTMLResponse)
-async def order_detail_page(
-    request: Request, 
-    order_id: int, 
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user_optional)
-):
-    """Страница детальной информации о заказе"""
-    order = get_order(db, order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Заказ не найден")
-    
-    return templates.TemplateResponse(
-        "orders/detail.html", 
-        {"request": request, "current_user": current_user, "order": order}
-    )
+
 
 @router.get("/orders/{order_id}/edit", response_class=HTMLResponse)
 async def edit_order_page(
@@ -228,3 +213,21 @@ async def delete_order_post(
         return RedirectResponse(url="/orders?success=Заказ успешно удален", status_code=status.HTTP_302_FOUND)
     except Exception as e:
         return RedirectResponse(url=f"/orders/{order_id}?error={str(e)}", status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/orders/{order_id}", response_class=HTMLResponse)
+async def order_detail_page(
+    request: Request, 
+    order_id: int, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user_optional)
+):
+    """Страница детальной информации о заказе"""
+    order = get_order(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    
+    return templates.TemplateResponse(
+        "orders/detail.html", 
+        {"request": request, "current_user": current_user, "order": order}
+    )

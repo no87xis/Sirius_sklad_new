@@ -95,9 +95,14 @@ def update_product(db: Session, product_id: int, product_data: ProductUpdate) ->
 
 def delete_product(db: Session, product_id: int) -> bool:
     """Удалить товар"""
+    print(f"🔍 Попытка удаления товара ID: {product_id}")  # Отладка
+    
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
+        print(f"❌ Товар с ID {product_id} не найден")  # Отладка
         return False
+    
+    print(f"✅ Товар найден: {product.name}")  # Отладка
     
     # Проверяем, есть ли активные заказы
     active_orders = db.query(Order).filter(
@@ -106,13 +111,16 @@ def delete_product(db: Session, product_id: int) -> bool:
     ).first()
     
     if active_orders:
+        print(f"❌ Найдены активные заказы для товара {product_id}")  # Отладка
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Нельзя удалить товар с активными заказами"
         )
     
+    print(f"✅ Удаляем товар {product.name}")  # Отладка
     db.delete(product)
     db.commit()
+    print(f"✅ Товар {product.name} успешно удален")  # Отладка
     return True
 
 
