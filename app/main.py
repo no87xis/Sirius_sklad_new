@@ -42,6 +42,8 @@ app.include_router(web_admin_panel.router)
 app.include_router(api.router, prefix="/api")
 
 
+
+
 @app.get("/")
 async def root(request: Request, db: Session = Depends(get_db)):
     """Главная страница"""

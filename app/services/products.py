@@ -104,24 +104,35 @@ def delete_product(db: Session, product_id: int) -> bool:
     
     print(f"✅ Товар найден: {product.name}")  # Отладка
     
-    # Проверяем, есть ли активные заказы
-    active_orders = db.query(Order).filter(
-        Order.product_id == product_id,
-        Order.status.in_([OrderStatus.PAID_NOT_ISSUED, OrderStatus.PAID_ISSUED])
-    ).first()
-    
-    if active_orders:
-        print(f"❌ Найдены активные заказы для товара {product_id}")  # Отладка
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Нельзя удалить товар с активными заказами"
-        )
-    
-    print(f"✅ Удаляем товар {product.name}")  # Отладка
-    db.delete(product)
-    db.commit()
-    print(f"✅ Товар {product.name} успешно удален")  # Отладка
-    return True
+    try:
+        # Проверяем, есть ли активные заказы
+        active_orders = db.query(Order).filter(
+            Order.product_id == product_id,
+            Order.status.in_([OrderStatus.PAID_NOT_ISSUED, OrderStatus.PAID_ISSUED])
+        ).first()
+        
+        if active_orders:
+            print(f"❌ Найдены активные заказы для товара {product_id}")  # Отладка
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Нельзя удалить товар с активными заказами"
+            )
+        
+        print(f"✅ Удаляем товар {product.name}")  # Отладка
+        db.delete(product)
+        db.commit()
+        print(f"✅ Товар {product.name} успешно удален")  # Отладка
+        return True
+        
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Ошибка при удалении товара {product_id}: {e}")  # Отладка
+        if "foreign key constraint" in str(e).lower() or "integrity" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Товар используется в заказах или поставках и не может быть удален"
+            )
+        raise e
 
 
 def create_supply(db: Session, supply_data: SupplyCreate) -> Supply:

@@ -215,6 +215,7 @@ async def delete_order_post(
         return RedirectResponse(url=f"/orders/{order_id}?error={str(e)}", status_code=status.HTTP_302_FOUND)
 
 
+# Параметрические маршруты (после всех статических)
 @router.get("/orders/{order_id}", response_class=HTMLResponse)
 async def order_detail_page(
     request: Request, 
@@ -231,3 +232,6 @@ async def order_detail_page(
         "orders/detail.html", 
         {"request": request, "current_user": current_user, "order": order}
     )
+
+
+

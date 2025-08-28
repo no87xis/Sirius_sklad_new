@@ -83,6 +83,87 @@ async def create_product_post(
 
 
 
+
+
+
+
+
+
+@router.get("/products/{product_id}/supplies/new", response_class=HTMLResponse)
+async def new_supply_page(
+    request: Request,
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_admin_or_manager())
+):
+    """Страница создания новой поставки"""
+    product = get_product(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    
+    return templates.TemplateResponse(
+        "supplies/new.html",
+        {"request": request, "current_user": current_user, "product": product}
+    )
+
+
+@router.post("/products/{product_id}/supplies", response_class=HTMLResponse)
+async def create_supply_post(
+    request: Request,
+    product_id: int,
+    qty: int = Form(...),
+    supplier_name: str = Form(...),
+    buy_price_eur: float = Form(...),
+    db: Session = Depends(get_db),
+    current_user = Depends(require_admin_or_manager())
+):
+    """Создание новой поставки"""
+    try:
+        supply_data = SupplyCreate(
+            product_id=product_id,
+            qty=qty,
+            supplier_name=supplier_name,
+            buy_price_eur=buy_price_eur
+        )
+        
+        create_supply(db, supply_data)
+        return RedirectResponse(
+            url=f"/products/{product_id}?success=Поставка успешно создана",
+            status_code=status.HTTP_302_FOUND
+        )
+    except Exception as e:
+        return RedirectResponse(
+            url=f"/products/{product_id}/supplies/new?error={str(e)}",
+            status_code=status.HTTP_302_FOUND
+        )
+
+
+# Параметрические маршруты (после всех статических)
+@router.get("/products/{product_id}", response_class=HTMLResponse)
+async def product_detail_page(
+    request: Request,
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user_optional)
+):
+    """Страница детальной информации о товаре"""
+    product = get_product(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    
+    supplies = get_product_supplies(db, product_id)
+    
+    return templates.TemplateResponse(
+        "products/detail.html",
+        {
+            "request": request, 
+            "current_user": current_user, 
+            "product": product,
+            "supplies": supplies
+        }
+    )
+
+
 @router.get("/products/{product_id}/edit", response_class=HTMLResponse)
 async def edit_product_page(
     request: Request,
@@ -156,80 +237,3 @@ async def delete_product_post(
             url=f"/products/{product_id}?error={str(e)}",
             status_code=status.HTTP_302_FOUND
         )
-
-
-
-
-
-@router.get("/products/{product_id}/supplies/new", response_class=HTMLResponse)
-async def new_supply_page(
-    request: Request,
-    product_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(require_admin_or_manager())
-):
-    """Страница создания новой поставки"""
-    product = get_product(db, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Товар не найден")
-    
-    return templates.TemplateResponse(
-        "supplies/new.html",
-        {"request": request, "current_user": current_user, "product": product}
-    )
-
-
-@router.post("/products/{product_id}/supplies", response_class=HTMLResponse)
-async def create_supply_post(
-    request: Request,
-    product_id: int,
-    qty: int = Form(...),
-    supplier_name: str = Form(...),
-    buy_price_eur: float = Form(...),
-    db: Session = Depends(get_db),
-    current_user = Depends(require_admin_or_manager())
-):
-    """Создание новой поставки"""
-    try:
-        supply_data = SupplyCreate(
-            product_id=product_id,
-            qty=qty,
-            supplier_name=supplier_name,
-            buy_price_eur=buy_price_eur
-        )
-        
-        create_supply(db, supply_data)
-        return RedirectResponse(
-            url=f"/products/{product_id}?success=Поставка успешно создана",
-            status_code=status.HTTP_302_FOUND
-        )
-    except Exception as e:
-        return RedirectResponse(
-            url=f"/products/{product_id}/supplies/new?error={str(e)}",
-            status_code=status.HTTP_302_FOUND
-        )
-
-
-@router.get("/products/{product_id}", response_class=HTMLResponse)
-async def product_detail_page(
-    request: Request,
-    product_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user_optional)
-):
-    """Страница детальной информации о товаре"""
-    product = get_product(db, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Товар не найден")
-    
-    supplies = get_product_supplies(db, product_id)
-    
-    return templates.TemplateResponse(
-        "products/detail.html",
-        {
-            "request": request, 
-            "current_user": current_user, 
-            "product": product,
-            "supplies": supplies
-        }
-    )
