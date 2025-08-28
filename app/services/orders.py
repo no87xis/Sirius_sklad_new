@@ -13,7 +13,13 @@ def get_orders(db: Session, skip: int = 0, limit: int = 100, status_filter: Opti
     query = db.query(Order)
     
     if status_filter:
-        query = query.filter(Order.status == status_filter)
+        # Преобразуем строковый фильтр в enum
+        try:
+            status_enum = OrderStatus(status_filter)
+            query = query.filter(Order.status == status_enum)
+        except ValueError:
+            # Если статус неверный, возвращаем пустой список
+            return []
     
     orders = query.offset(skip).limit(limit).all()
     

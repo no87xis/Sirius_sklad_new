@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
-from ..models import Product, Supply, Order
+from ..models import Product, Supply, Order, OrderStatus
 from ..schemas.product import ProductCreate, ProductUpdate
 from ..schemas.supply import SupplyCreate
 from fastapi import HTTPException, status
@@ -12,7 +12,7 @@ def calculate_stock(product: Product, db: Session) -> int:
     # Получаем количество выданных заказов
     issued_orders = db.query(func.coalesce(func.sum(Order.qty), 0)).filter(
         Order.product_id == product.id,
-        Order.status == "paid_issued"
+        Order.status == OrderStatus.PAID_ISSUED
     ).scalar()
     
     # Остаток = общий приход - выданные заказы
@@ -102,7 +102,7 @@ def delete_product(db: Session, product_id: int) -> bool:
     # Проверяем, есть ли активные заказы
     active_orders = db.query(Order).filter(
         Order.product_id == product_id,
-        Order.status.in_(["paid_not_issued", "paid_issued"])
+        Order.status.in_([OrderStatus.PAID_NOT_ISSUED, OrderStatus.PAID_ISSUED])
     ).first()
     
     if active_orders:
