@@ -3,7 +3,7 @@ from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
-from ..models import Order, Product, OrderStatus
+from ..models import Order, Product, OrderStatus, PaymentMethod
 from ..schemas.order import OrderCreate, OrderUpdate, OrderStatusUpdate
 from ..services.products import calculate_stock
 from fastapi import HTTPException, status
