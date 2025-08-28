@@ -227,14 +227,16 @@ async def update_product_post(
 async def delete_product_post(
     request: Request,
     product_id: int,
+    force: bool = Form(False),
     db: Session = Depends(get_db),
     current_user = Depends(require_admin_or_manager())
 ):
     """Удаление товара"""
     try:
-        delete_product(db, product_id)
+        delete_product(db, product_id, force=force)
+        message = "Товар успешно удален" if not force else "Товар принудительно удален (с активными заказами)"
         return RedirectResponse(
-            url="/products?success=Товар успешно удален",
+            url=f"/products?success={message}",
             status_code=status.HTTP_302_FOUND
         )
     except Exception as e:

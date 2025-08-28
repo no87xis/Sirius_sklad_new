@@ -93,9 +93,15 @@ def update_product(db: Session, product_id: int, product_data: ProductUpdate) ->
     return product
 
 
-def delete_product(db: Session, product_id: int) -> bool:
-    """Удалить товар"""
-    print(f"🔍 Попытка удаления товара ID: {product_id}")  # Отладка
+def delete_product(db: Session, product_id: int, force: bool = False) -> bool:
+    """Удалить товар
+    
+    Args:
+        db: Сессия БД
+        product_id: ID товара
+        force: Принудительное удаление (игнорирует активные заказы)
+    """
+    print(f"🔍 Попытка удаления товара ID: {product_id} (force={force})")  # Отладка
     
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
@@ -105,18 +111,21 @@ def delete_product(db: Session, product_id: int) -> bool:
     print(f"✅ Товар найден: {product.name}")  # Отладка
     
     try:
-        # Проверяем, есть ли активные заказы
+        # Проверяем, есть ли активные заказы (не отмененные)
         active_orders = db.query(Order).filter(
             Order.product_id == product_id,
-            Order.status.in_([OrderStatus.PAID_NOT_ISSUED, OrderStatus.PAID_ISSUED])
+            Order.status != OrderStatus.PAID_DENIED
         ).first()
         
-        if active_orders:
+        if active_orders and not force:
             print(f"❌ Найдены активные заказы для товара {product_id}")  # Отладка
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Нельзя удалить товар с активными заказами"
+                detail="Нельзя удалить товар с активными заказами. Сначала отмените все заказы или используйте принудительное удаление."
             )
+        
+        if active_orders and force:
+            print(f"⚠️ Принудительное удаление товара {product_id} с активными заказами")  # Отладка
         
         print(f"✅ Удаляем товар {product.name}")  # Отладка
         db.delete(product)
