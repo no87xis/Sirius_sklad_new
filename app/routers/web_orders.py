@@ -7,12 +7,13 @@ from ..db import get_db
 from ..services.auth import get_current_user_optional, get_current_user
 from ..services.orders import (
     get_orders, get_order, create_order, update_order, update_order_status,
-    delete_order, get_order_statistics, get_orders_by_product, get_orders_by_phone
+    delete_order, get_order_statistics, get_orders_by_product, get_orders_by_phone,
+    get_last_eur_rate
 )
 from ..services.products import get_products
 from ..schemas.order import OrderCreate, OrderUpdate, OrderStatusUpdate
 from ..deps import require_admin_or_manager
-from ..models import OrderStatus
+from ..models import OrderStatus, PaymentMethod
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -56,9 +57,16 @@ async def new_order_page(
 ):
     """Страница создания нового заказа"""
     products = get_products(db)
+    last_eur_rate = get_last_eur_rate(db)
     return templates.TemplateResponse(
         "orders/new.html", 
-        {"request": request, "current_user": current_user, "products": products}
+        {
+            "request": request, 
+            "current_user": current_user, 
+            "products": products,
+            "last_eur_rate": last_eur_rate,
+            "payment_methods": PaymentMethod
+        }
     )
 
 @router.post("/orders", response_class=HTMLResponse)
@@ -66,9 +74,13 @@ async def create_order_post(
     request: Request,
     phone: str = Form(...),
     customer_name: Optional[str] = Form(None),
+    client_city: Optional[str] = Form(None),
     product_id: int = Form(...),
     qty: int = Form(...),
     unit_price_rub: float = Form(...),
+    eur_rate: float = Form(...),
+    payment_method: str = Form(...),
+    payment_note: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user_optional)
 ):
@@ -77,12 +89,17 @@ async def create_order_post(
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     try:
+        from decimal import Decimal
         order_data = OrderCreate(
             phone=phone,
             customer_name=customer_name,
+            client_city=client_city,
             product_id=product_id,
             qty=qty,
-            unit_price_rub=unit_price_rub
+            unit_price_rub=Decimal(str(unit_price_rub)),
+            eur_rate=Decimal(str(eur_rate)),
+            payment_method=PaymentMethod(payment_method),
+            payment_note=payment_note
         )
         create_order(db, order_data, current_user.username)
         return RedirectResponse(url="/orders?success=Заказ успешно создан", status_code=status.HTTP_302_FOUND)
@@ -138,7 +155,13 @@ async def edit_order_page(
     products = get_products(db)
     return templates.TemplateResponse(
         "orders/edit.html", 
-        {"request": request, "current_user": current_user, "order": order, "products": products}
+        {
+            "request": request, 
+            "current_user": current_user, 
+            "order": order, 
+            "products": products,
+            "payment_methods": PaymentMethod
+        }
     )
 
 @router.post("/orders/{order_id}", response_class=HTMLResponse)
@@ -147,20 +170,29 @@ async def update_order_post(
     order_id: int,
     phone: Optional[str] = Form(None),
     customer_name: Optional[str] = Form(None),
+    client_city: Optional[str] = Form(None),
     product_id: Optional[int] = Form(None),
     qty: Optional[int] = Form(None),
     unit_price_rub: Optional[float] = Form(None),
+    eur_rate: Optional[float] = Form(None),
+    payment_method: Optional[str] = Form(None),
+    payment_note: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user = Depends(require_admin_or_manager())
 ):
     """Обновление заказа"""
     try:
+        from decimal import Decimal
         order_data = OrderUpdate(
             phone=phone,
             customer_name=customer_name,
+            client_city=client_city,
             product_id=product_id,
             qty=qty,
-            unit_price_rub=unit_price_rub
+            unit_price_rub=Decimal(str(unit_price_rub)) if unit_price_rub else None,
+            eur_rate=Decimal(str(eur_rate)) if eur_rate else None,
+            payment_method=PaymentMethod(payment_method) if payment_method else None,
+            payment_note=payment_note
         )
         update_order(db, order_id, order_data)
         return RedirectResponse(url=f"/orders/{order_id}?success=Заказ успешно обновлен", status_code=status.HTTP_302_FOUND)

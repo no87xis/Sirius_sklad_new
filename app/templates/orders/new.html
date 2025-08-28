@@ -12,6 +12,8 @@
             <h1 class="text-3xl font-bold text-gray-900">Новый заказ</h1>
         </div>
 
+        {% include "_flash.html" %}
+
         <div class="bg-white rounded-lg shadow p-6">
             <form method="POST" class="space-y-6">
                 <!-- Информация о клиенте -->
@@ -33,6 +35,14 @@
                             <input type="text" name="customer_name" id="customer_name"
                                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                    placeholder="Иван Иванов">
+                        </div>
+                        <div>
+                            <label for="client_city" class="block text-sm font-medium text-gray-700 mb-1">
+                                Город клиента
+                            </label>
+                            <input type="text" name="client_city" id="client_city"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Москва">
                         </div>
                     </div>
                 </div>
@@ -73,6 +83,44 @@
                                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                    placeholder="0.00">
                         </div>
+                    </div>
+                </div>
+
+                <!-- Курс евро и способ оплаты -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Курс евро и оплата</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="eur_rate" class="block text-sm font-medium text-gray-700 mb-1">
+                                Курс евро (₽) *
+                            </label>
+                            <input type="number" name="eur_rate" id="eur_rate" step="0.0001" min="0" required
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="90.0000" value="{{ "%.4f"|format(last_eur_rate) }}">
+                        </div>
+                        <div>
+                            <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-1">
+                                Способ оплаты *
+                            </label>
+                            <select name="payment_method" id="payment_method" required
+                                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Выберите способ оплаты</option>
+                                <option value="card">Банковская карта</option>
+                                <option value="cash">Наличные</option>
+                                <option value="unpaid" selected>Не оплачено</option>
+                                <option value="other">Другое</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="payment_note_container" class="mt-4 hidden">
+                        <label for="payment_note" class="block text-sm font-medium text-gray-700 mb-1">
+                            Примечание к оплате
+                        </label>
+                        <input type="text" name="payment_note" id="payment_note"
+                               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="Укажите способ оплаты">
+                    </div>
+                </div>
                     </div>
                 </div>
 
@@ -141,6 +189,18 @@ document.addEventListener('DOMContentLoaded', function() {
     productSelect.addEventListener('change', updatePriceFromProduct);
     qtyInput.addEventListener('input', updateCalculation);
     priceInput.addEventListener('input', updateCalculation);
+
+    // Обработка способа оплаты
+    const paymentMethodSelect = document.getElementById('payment_method');
+    const paymentNoteContainer = document.getElementById('payment_note_container');
+    
+    paymentMethodSelect.addEventListener('change', function() {
+        if (this.value === 'other') {
+            paymentNoteContainer.classList.remove('hidden');
+        } else {
+            paymentNoteContainer.classList.add('hidden');
+        }
+    });
 
     // Инициализация
     updateCalculation();

@@ -4,6 +4,7 @@
 
 {% block content %}
 <div class="px-4 sm:px-6 lg:px-8">
+    {% include "_flash.html" %}
     <div class="sm:flex sm:items-center">
         <div class="sm:flex-auto">
             <h1 class="text-3xl font-bold text-gray-900">Управление складом</h1>
@@ -117,6 +118,11 @@
                                             <a href="/products/{{ product.id }}/supplies/new" class="text-green-600 hover:text-green-900">
                                                 Поставка
                                             </a>
+                                            <form method="POST" action="/products/{{ product.id }}/delete" class="inline" onsubmit="return confirm('Удалить товар «{{ product.name }}»?')">
+                                                <button type="submit" class="text-red-600 hover:text-red-900">
+                                                    Удалить
+                                                </button>
+                                            </form>
                                             {% endif %}
                                         </div>
                                     </td>

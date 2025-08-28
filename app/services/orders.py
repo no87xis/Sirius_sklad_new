@@ -53,10 +53,14 @@ def create_order(db: Session, order_data: OrderCreate, user_id: str) -> Order:
     order = Order(
         phone=order_data.phone,
         customer_name=order_data.customer_name,
+        client_city=order_data.client_city,
         product_id=order_data.product_id,
         product_name=product.name,
         qty=order_data.qty,
         unit_price_rub=order_data.unit_price_rub,
+        eur_rate=order_data.eur_rate,
+        payment_method=order_data.payment_method,
+        payment_note=order_data.payment_note,
         status=OrderStatus.PAID_NOT_ISSUED,
         user_id=user_id
     )
@@ -199,3 +203,10 @@ def get_orders_by_phone(db: Session, phone: str, skip: int = 0, limit: int = 100
             order.product_name = order.product.name
     
     return orders
+
+
+def get_last_eur_rate(db: Session) -> Decimal:
+    """Получить последний курс евро из заказов"""
+    from sqlalchemy import select
+    last_order = db.query(Order.eur_rate).order_by(Order.created_at.desc()).first()
+    return last_order[0] if last_order else Decimal("90.0000")
