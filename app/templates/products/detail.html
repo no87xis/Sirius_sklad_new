@@ -57,6 +57,13 @@
                                 <dd class="mt-1 text-sm text-gray-900">{{ product.description }}</dd>
                             </div>
                             {% endif %}
+                            
+                            {% if product.detailed_description %}
+                            <div class="sm:col-span-2">
+                                <dt class="text-sm font-medium text-gray-500">Подробное описание для магазина</dt>
+                                <dd class="mt-1 text-sm text-gray-900 whitespace-pre-line">{{ product.detailed_description }}</dd>
+                            </div>
+                            {% endif %}
 
                             <div>
                                 <dt class="text-sm font-medium text-gray-500">Общий приход</dt>

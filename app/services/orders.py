@@ -68,7 +68,14 @@ def create_order(db: Session, order_data: OrderCreate, user_id: str) -> Order:
         payment_method=order_data.payment_method,
         payment_note=order_data.payment_note,
         status=OrderStatus.PAID_NOT_ISSUED,
-        user_id=user_id
+        user_id=user_id,
+        # Новые поля
+        order_code=order_data.order_code,
+        order_code_last4=order_data.order_code[-4:] if order_data.order_code else None,
+        payment_method_id=order_data.payment_method_id,
+        payment_instrument_id=order_data.payment_instrument_id,
+        paid_amount=order_data.paid_amount,
+        paid_at=order_data.paid_at
     )
     
     db.add(order)

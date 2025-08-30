@@ -11,9 +11,11 @@ from ..services.orders import (
     get_last_eur_rate
 )
 from ..services.products import get_products
+from ..services.order_code import OrderCodeService
+from ..services.payments import PaymentService
 from ..schemas.order import OrderCreate, OrderUpdate, OrderStatusUpdate
 from ..deps import require_admin_or_manager
-from ..models import OrderStatus, PaymentMethod
+from ..models import OrderStatus, PaymentMethod, PaymentMethodModel
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -24,7 +26,8 @@ async def orders_page(
     db: Session = Depends(get_db), 
     current_user = Depends(get_current_user_optional),
     status_filter: Optional[str] = Query(None),
-    phone_search: Optional[str] = Query(None)
+    phone_search: Optional[str] = Query(None),
+    code_search: Optional[str] = Query(None)
 ):
     """Страница списка заказов"""
     orders = get_orders(db, status_filter=status_filter)
@@ -32,6 +35,10 @@ async def orders_page(
     # Фильтрация по телефону
     if phone_search:
         orders = [order for order in orders if phone_search.lower() in order.phone.lower()]
+    
+    # Фильтрация по коду заказа (только по полному коду)
+    if code_search:
+        orders = [order for order in orders if order.order_code and code_search.upper() == order.order_code.upper()]
     
     # Получаем статистику
     stats = get_order_statistics(db)
@@ -45,6 +52,7 @@ async def orders_page(
             "stats": stats,
             "status_filter": status_filter,
             "phone_search": phone_search,
+            "code_search": code_search,
             "statuses": OrderStatus
         }
     )
@@ -58,6 +66,10 @@ async def new_order_page(
     """Страница создания нового заказа"""
     products = get_products(db)
     last_eur_rate = get_last_eur_rate(db)
+    
+    # Получаем активные методы оплаты
+    payment_methods = PaymentService.get_active_payment_methods(db)
+    
     return templates.TemplateResponse(
         "orders/new.html", 
         {
@@ -65,7 +77,8 @@ async def new_order_page(
             "current_user": current_user, 
             "products": products,
             "last_eur_rate": last_eur_rate,
-            "payment_methods": PaymentMethod
+            "payment_methods": payment_methods,
+            "old_payment_methods": PaymentMethod  # Для совместимости
         }
     )
 
@@ -75,6 +88,7 @@ async def create_order_post(
     phone: str = Form(...),
     customer_name: Optional[str] = Form(None),
     client_city: Optional[str] = Form(None),
+    client_city_custom: Optional[str] = Form(None),
     product_id: int = Form(...),
     qty: int = Form(...),
     unit_price_rub: str = Form(...),
@@ -90,16 +104,26 @@ async def create_order_post(
     
     try:
         from decimal import Decimal
+        
+        # Генерируем уникальный код заказа
+        order_code = OrderCodeService.generate_unique_order_code(db)
+        
+        # Обрабатываем город клиента
+        final_city = client_city
+        if client_city == "custom" and client_city_custom:
+            final_city = client_city_custom
+        
         order_data = OrderCreate(
             phone=phone,
             customer_name=customer_name,
-            client_city=client_city,
+            client_city=final_city,
             product_id=product_id,
             qty=qty,
             unit_price_rub=Decimal(unit_price_rub),
             eur_rate=Decimal(eur_rate),
             payment_method=PaymentMethod(payment_method),
-            payment_note=payment_note
+            payment_note=payment_note,
+            order_code=order_code  # Передаем сгенерированный код
         )
         create_order(db, order_data, current_user.username)
         return RedirectResponse(url="/orders?success=Заказ успешно создан", status_code=status.HTTP_302_FOUND)

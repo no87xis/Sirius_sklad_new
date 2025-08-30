@@ -1,0 +1,143 @@
+{% extends "shop/base.html" %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Хлебные крошки -->
+    <nav class="mb-6">
+        <ol class="flex items-center space-x-2 text-sm text-gray-500">
+            <li><a href="/shop" class="hover:text-blue-600">Главная</a></li>
+            <li><span class="mx-2">/</span></li>
+            <li><span class="text-gray-900">{{ product.name }}</span></li>
+        </ol>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Фото товара -->
+        <div class="space-y-4">
+            {% if product.main_photo %}
+            <div class="aspect-w-1 aspect-h-1 w-full">
+                <img src="/static/{{ product.main_photo.file_path.replace('app/static/', '') }}" 
+                     alt="{{ product.name }}"
+                     class="w-full h-96 object-cover rounded-lg shadow-lg"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center" style="display: none;">
+                    <div class="text-center">
+                        <i class="fas fa-image text-gray-400 text-6xl mb-4"></i>
+                        <p class="text-gray-500 text-lg">Фото недоступно</p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+                <div class="text-center">
+                    <i class="text-gray-400 text-6xl mb-4">📷</div>
+                    <p class="text-gray-500 text-lg">Нет фото</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Информация о товаре -->
+        <div class="space-y-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ product.name }}</h1>
+                
+                <!-- Статус наличия -->
+                <div class="mb-4">
+                    {% if product.quantity > 0 %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        В наличии
+                    </span>
+                    {% elif product.expected_date %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                        <i class="fas fa-clock mr-2"></i>
+                        Под заказ (Дата доставки: {{ product.expected_date.strftime('%d.%m.%Y') }})
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                        <i class="fas fa-question-circle mr-2"></i>
+                        Под заказ
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Цена -->
+                <div class="mb-6">
+                    {% if product.sell_price_rub %}
+                    <p class="text-4xl font-bold text-blue-600">
+                        {{ "%.2f"|format(product.sell_price_rub) }} ₽
+                    </p>
+                    {% else %}
+                    <p class="text-2xl text-gray-500">Цена по запросу</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Подробное описание -->
+            {% if product.detailed_description %}
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Описание товара</h3>
+                <div class="text-gray-700 whitespace-pre-line">{{ product.detailed_description }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Краткое описание -->
+            {% if product.description %}
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Краткая информация</h3>
+                <p class="text-gray-700">{{ product.description }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Форма добавления в корзину -->
+            {% if product.quantity > 0 or product.expected_date %}
+            <div class="border-t pt-6">
+                <form method="POST" action="/shop/cart/add" class="space-y-4">
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    
+                    <div class="flex items-center space-x-4">
+                        <label for="quantity" class="text-sm font-medium text-gray-700">Количество:</label>
+                        <input type="number" 
+                               name="quantity" 
+                               id="quantity"
+                               value="1" 
+                               min="1" 
+                               max="{{ product.quantity if product.quantity > 0 else 999 }}"
+                               class="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <button type="submit" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
+                        <i class="fas fa-shopping-cart mr-2"></i>
+                        Добавить в корзину
+                    </button>
+                </form>
+            {% else %}
+            <div class="border-t pt-6">
+                <div class="text-center py-8">
+                    <i class="fas fa-times-circle text-red-400 text-4xl mb-4"></i>
+                    <p class="text-gray-500">Товар временно недоступен</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Кнопка "Назад к каталогу" -->
+    <div class="mt-12 text-center">
+        <a href="/shop" class="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Назад к каталогу
+        </a>
+    </div>
+    
+    <!-- Footer с информацией -->
+    <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+        <p class="text-sm text-gray-600 text-center">
+            Товары резервируются на 48 часов. В случае отсутствия оплаты резерв снимается.
+        </div>
+</div>
+{% endblock %}

@@ -9,6 +9,7 @@ class UserRole(str, enum.Enum):
     ADMIN = "admin"
     MANAGER = "manager"
     USER = "user"
+    WAREHOUSE = "warehouse"  # Новая роль для работников склада
 
 
 class User(Base):

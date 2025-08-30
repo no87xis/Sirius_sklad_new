@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Request, Form, HTTPException, status, Depends
+from fastapi import APIRouter, Request, Form, HTTPException, status, Depends, File, UploadFile
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 from ..db import get_db
 from ..services.auth import get_current_user_optional
 from ..services.products import (
-    get_products, get_product, create_product, update_product, 
+    ProductService, get_products, get_product, update_product, 
     delete_product, create_supply, get_product_supplies
 )
 from ..schemas.product import ProductCreate, ProductUpdate
@@ -48,11 +48,13 @@ async def create_product_post(
     request: Request,
     name: str = Form(...),
     description: Optional[str] = Form(None),
+    detailed_description: Optional[str] = Form(None),
     min_stock: int = Form(0),
     buy_price_eur: Optional[str] = Form(None),
     sell_price_rub: Optional[str] = Form(None),
     supplier_name: Optional[str] = Form(None),
     initial_quantity: int = Form(0),
+    photos: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user = Depends(require_admin_or_manager())
 ):
@@ -60,9 +62,12 @@ async def create_product_post(
     try:
         from decimal import Decimal
         
+
+        
         product_data = ProductCreate(
             name=name,
             description=description,
+            detailed_description=detailed_description,
             min_stock=min_stock,
             buy_price_eur=Decimal(buy_price_eur) if buy_price_eur else None,
             sell_price_rub=Decimal(sell_price_rub) if sell_price_rub else None,
@@ -70,7 +75,26 @@ async def create_product_post(
             initial_quantity=initial_quantity
         )
         
-        create_product(db, product_data)
+        # Создаем товар
+        product = ProductService.create_product(db, product_data)
+        
+        # Обрабатываем загруженное фото
+        if photos and product and photos.filename:
+            from ..services.product_photos import ProductPhotoService
+            try:
+                # Сохраняем фото как главное
+                await ProductPhotoService.save_photo(
+                    photos, 
+                    product.id, 
+                    db,
+                    is_main=True, 
+                    sort_order=0
+                )
+            except Exception as photo_error:
+                # Логируем ошибку, но не прерываем создание товара
+                print(f"Ошибка загрузки фото {photos.filename}: {photo_error}")
+                # Можно также добавить flash-сообщение об ошибке
+        
         return RedirectResponse(
             url="/products?success=Товар успешно создан",
             status_code=status.HTTP_302_FOUND
@@ -193,25 +217,65 @@ async def update_product_post(
     product_id: int,
     name: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
+    detailed_description: Optional[str] = Form(None),
     min_stock: Optional[int] = Form(None),
+    quantity: Optional[int] = Form(None),
     buy_price_eur: Optional[float] = Form(None),
     sell_price_rub: Optional[float] = Form(None),
     supplier_name: Optional[str] = Form(None),
+    availability_status: Optional[str] = Form(None),
+    expected_date: Optional[str] = Form(None),
+    new_photos: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user = Depends(require_admin_or_manager())
 ):
     """Обновление товара"""
     try:
+        # Преобразуем дату из строки
+        expected_date_obj = None
+        if expected_date:
+            from datetime import datetime
+            try:
+                expected_date_obj = datetime.strptime(expected_date, '%Y-%m-%d').date()
+            except ValueError:
+                print(f"Ошибка парсинга даты: {expected_date}")
+        
         product_data = ProductUpdate(
             name=name,
             description=description,
+            detailed_description=detailed_description,
             min_stock=min_stock,
             buy_price_eur=buy_price_eur,
             sell_price_rub=sell_price_rub,
-            supplier_name=supplier_name
+            supplier_name=supplier_name,
+            availability_status=availability_status,
+            expected_date=expected_date_obj
         )
         
+        # Обновляем товар
         update_product(db, product_id, product_data)
+        
+        # Обновляем количество товара отдельно (если указано)
+        if quantity is not None:
+            from ..services.products import update_product_quantity
+            update_product_quantity(db, product_id, quantity)
+        
+        # Обрабатываем новое загруженное фото
+        if new_photos and product_id and new_photos.filename:
+            from ..services.product_photos import ProductPhotoService
+            try:
+                # Сохраняем фото (не делаем главным)
+                await ProductPhotoService.save_photo(
+                    new_photos, 
+                    product_id, 
+                    db,
+                    is_main=False, 
+                    sort_order=0
+                )
+            except Exception as photo_error:
+                # Логируем ошибку, но не прерываем обновление товара
+                print(f"Ошибка загрузки фото {new_photos.filename}: {photo_error}")
+        
         return RedirectResponse(
             url=f"/products/{product_id}?success=Товар успешно обновлен",
             status_code=status.HTTP_302_FOUND

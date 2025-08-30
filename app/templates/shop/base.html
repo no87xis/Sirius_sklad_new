@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}Магазин Сириус{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Кастомные стили -->
+    <style>
+        .product-card {
+            transition: all 0.3s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .cart-badge {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Логотип -->
+                <div class="flex items-center">
+                    <a href="/shop" class="text-2xl font-bold text-blue-600">
+                        🛍️ Sirius Group
+                    </a>
+                </div>
+                
+                <!-- Навигация -->
+                <nav class="hidden md:flex space-x-8">
+                    <a href="/shop/search-order" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                        Проверить свой заказ
+                    </a>
+                </nav>
+                
+                <!-- Корзина -->
+                <div class="flex items-center space-x-4">
+                    <a href="/shop/cart" class="relative text-gray-700 hover:text-blue-600 flex items-center space-x-2">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span class="text-sm font-medium">Корзина</span>
+                        {% if cart_count and cart_count > 0 %}
+                        <span class="cart-badge absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                            {{ cart_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center text-gray-500 text-sm">
+                <p>&copy; 2025 Sirius Group. Все права защищены.</p>
+                <p class="mt-2">Товары резервируются на 48 часов. Оплата производится при получении.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- JavaScript -->
+    <script>
+        // Обновление количества товаров в корзине
+        function updateCartCount() {
+            fetch('/api/shop/cart/count')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.querySelector('.cart-badge');
+                    if (data.count > 0) {
+                        if (badge) {
+                            badge.textContent = data.count;
+                        } else {
+                            // Создаём бейдж если его нет
+                            const cartIcon = document.querySelector('.fa-shopping-cart').parentElement;
+                            const newBadge = document.createElement('span');
+                            newBadge.className = 'cart-badge absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center';
+                            newBadge.textContent = data.count;
+                            cartIcon.classList.add('relative');
+                            cartIcon.appendChild(newBadge);
+                        }
+                    } else if (badge) {
+                        badge.remove();
+                    }
+                })
+                .catch(error => console.error('Ошибка обновления корзины:', error));
+        }
+        
+        // Обновляем корзину каждые 30 секунд
+        setInterval(updateCartCount, 30000);
+        
+        // Обновляем при загрузке страницы
+        document.addEventListener('DOMContentLoaded', updateCartCount);
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

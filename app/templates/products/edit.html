@@ -26,7 +26,7 @@
         <!-- Форма редактирования товара -->
         <div class="bg-white shadow sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <form method="POST" action="/products/{{ product.id }}" class="space-y-6">
+                <form method="POST" action="/products/{{ product.id }}" class="space-y-6" enctype="multipart/form-data">
                     <!-- Основная информация -->
                     <div>
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Основная информация</h3>
@@ -49,6 +49,16 @@
                                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
                                           placeholder="Краткое описание товара">{{ product.description or '' }}</textarea>
                             </div>
+                            
+                            <div class="sm:col-span-2">
+                                <label for="detailed_description" class="block text-sm font-medium text-gray-700">
+                                    Подробное описание для магазина
+                                </label>
+                                <textarea name="detailed_description" id="detailed_description" rows="4"
+                                          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                          placeholder="Подробное описание товара для клиентов магазина">{{ product.detailed_description or '' }}</textarea>
+                                <p class="mt-1 text-xs text-gray-500">Это описание будет видно клиентам в магазине</p>
+                            </div>
 
                             <div>
                                 <label for="supplier_name" class="block text-sm font-medium text-gray-700">
@@ -61,14 +71,37 @@
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">
-                                    Текущий остаток
+                                <label for="quantity" class="block text-sm font-medium text-gray-700">
+                                    Остаток (ручное изменение)
                                 </label>
-                                <div class="mt-1 p-3 bg-gray-50 rounded-md">
-                                    <span class="text-lg font-semibold text-gray-900">{{ product.stock }}</span>
-                                    <span class="text-sm text-gray-500 ml-2">из {{ product.quantity }}</span>
-                                </div>
-                                <p class="mt-1 text-xs text-gray-500">Остаток обновляется автоматически при поставках и заказах</p>
+                                <input type="number" name="quantity" id="quantity" min="0"
+                                       value="{{ product.quantity }}"
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                       placeholder="0">
+                                <p class="mt-1 text-xs text-gray-500">Текущий остаток: {{ product.stock }} из {{ product.quantity }}</p>
+                            </div>
+
+                            <div>
+                                <label for="availability_status" class="block text-sm font-medium text-gray-700">
+                                    Статус наличия
+                                </label>
+                                <select name="availability_status" id="availability_status"
+                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
+                                    <option value="IN_STOCK" {% if product.availability_status == 'IN_STOCK' %}selected{% endif %}>В наличии</option>
+                                    <option value="OUT_OF_STOCK" {% if product.availability_status == 'OUT_OF_STOCK' %}selected{% endif %}>Нет в наличии</option>
+                                    <option value="ON_ORDER" {% if product.availability_status == 'ON_ORDER' %}selected{% endif %}>Под заказ</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Статус для отображения в магазине</p>
+                            </div>
+
+                            <div>
+                                <label for="expected_date" class="block text-sm font-medium text-gray-700">
+                                    Ожидаемая дата поступления
+                                </label>
+                                <input type="date" name="expected_date" id="expected_date"
+                                       value="{{ product.expected_date.strftime('%Y-%m-%d') if product.expected_date else '' }}"
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">Дата, когда товар поступит на склад</p>
                             </div>
                         </div>
                     </div>
@@ -139,6 +172,71 @@
                         </div>
                     </div>
 
+                    <!-- Управление фотографиями -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Фотографии товара</h3>
+                        
+                        <!-- Текущие фотографии -->
+                        {% if product.photos %}
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Текущие фотографии:</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {% for photo in product.photos %}
+                                <div class="relative group">
+                                    <img src="/static/{{ photo.file_path.replace('app/static/', '') }}" 
+                                         alt="Фото товара" 
+                                         class="w-full h-24 object-cover rounded-lg border border-gray-200">
+                                    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                        <button type="button" 
+                                                onclick="deletePhoto({{ photo.id }})"
+                                                class="bg-red-600 text-white p-2 rounded-full hover:bg-red-700">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    {% if photo.is_main %}
+                                    <div class="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                                        Главная
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Загрузка новых фотографий -->
+                        <div>
+                            <label for="new_photos" class="block text-sm font-medium text-gray-700 mb-2">
+                                Добавить новые фотографии
+                            </label>
+                            <input type="file" name="new_photos" id="new_photos" accept="image/*" multiple
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">
+                                Выберите одну или несколько фотографий. Первая загруженная будет главной.
+                            </p>
+                        </div>
+
+                        <!-- Инструкции по фотографиям -->
+                        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <div class="flex">
+                                <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div class="text-sm text-blue-700">
+                                    <p class="font-medium">Советы по фотографиям:</p>
+                                    <ul class="mt-1 list-disc list-inside space-y-1">
+                                        <li>Используйте качественные изображения</li>
+                                        <li>Первая загруженная фотография станет главной</li>
+                                        <li>Можно загружать до 6 фотографий на товар</li>
+                                        <li>Поддерживаемые форматы: JPG, PNG, GIF</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Кнопки действий -->
                     <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                         <a href="/products/{{ product.id }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sirius-blue">
@@ -156,4 +254,27 @@
         </div>
     </div>
 </div>
+
+<script>
+function deletePhoto(photoId) {
+    if (confirm('Вы уверены, что хотите удалить эту фотографию?')) {
+        fetch(`/api/photos/${photoId}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Перезагружаем страницу для обновления списка фотографий
+                location.reload();
+            } else {
+                alert('Ошибка при удалении фотографии: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при удалении фотографии');
+        });
+    }
+}
+</script>
 {% endblock %}

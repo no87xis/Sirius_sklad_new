@@ -5,6 +5,79 @@ from ..models import Product, Supply, Order, OrderStatus
 from ..schemas.product import ProductCreate, ProductUpdate
 from ..schemas.supply import SupplyCreate
 from fastapi import HTTPException, status
+import random
+import string
+
+
+class ProductService:
+
+
+    @staticmethod
+    def create_product(db: Session, product: ProductCreate) -> Product:
+        db_product = Product(
+            name=product.name,
+            description=product.description,
+            detailed_description=product.detailed_description,
+            min_stock=product.min_stock,
+            buy_price_eur=product.buy_price_eur,
+            sell_price_rub=product.sell_price_rub,
+            supplier_name=product.supplier_name,
+            quantity=product.initial_quantity
+        )
+        db.add(db_product)
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+
+    @staticmethod
+    def get_products(db: Session, skip: int = 0, limit: int = 100):
+        return db.query(Product).offset(skip).limit(limit).all()
+
+    @staticmethod
+    def get_product(db: Session, product_id: int):
+        return db.query(Product).filter(Product.id == product_id).first()
+
+    @staticmethod
+    def update_product(db: Session, product_id: int, product: ProductUpdate):
+        db_product = db.query(Product).filter(Product.id == product_id).first()
+        if not db_product:
+            return None
+        
+        update_data = product.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_product, field, value)
+        
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+
+    @staticmethod
+    def delete_product(db: Session, product_id: int):
+        db_product = db.query(Product).filter(Product.id == product_id).first()
+        if not db_product:
+            return False
+        
+        db.delete(db_product)
+        db.commit()
+        return True
+
+    @staticmethod
+    def get_low_stock_products(db: Session):
+        """Получает товары с низким остатком"""
+        return db.query(Product).filter(Product.quantity <= Product.min_stock).all()
+
+    @staticmethod
+    def get_stock_summary(db: Session):
+        """Получает сводку по остаткам товаров"""
+        total_products = db.query(func.count(Product.id)).scalar()
+        low_stock_count = db.query(func.count(Product.id)).filter(Product.quantity <= Product.min_stock).scalar()
+        out_of_stock_count = db.query(func.count(Product.id)).filter(Product.quantity == 0).scalar()
+        
+        return {
+            "total_products": total_products,
+            "low_stock_count": low_stock_count,
+            "out_of_stock_count": out_of_stock_count
+        }
 
 
 def calculate_stock(product: Product, db: Session) -> int:
@@ -27,7 +100,8 @@ def is_low_stock(product: Product, stock: int) -> bool:
 
 def get_products(db: Session, skip: int = 0, limit: int = 100) -> List[Product]:
     """Получить список товаров с вычисленными остатками"""
-    products = db.query(Product).offset(skip).limit(limit).all()
+    from sqlalchemy.orm import joinedload
+    products = db.query(Product).options(joinedload(Product.photos)).offset(skip).limit(limit).all()
     
     # Вычисляем остатки для каждого товара
     for product in products:
@@ -40,7 +114,8 @@ def get_products(db: Session, skip: int = 0, limit: int = 100) -> List[Product]:
 
 def get_product(db: Session, product_id: int) -> Optional[Product]:
     """Получить товар по ID с вычисленным остатком"""
-    product = db.query(Product).filter(Product.id == product_id).first()
+    from sqlalchemy.orm import joinedload
+    product = db.query(Product).options(joinedload(Product.photos)).filter(Product.id == product_id).first()
     if product:
         stock = calculate_stock(product, db)
         product.stock = stock
@@ -187,3 +262,23 @@ def get_product_supplies(db: Session, product_id: int, skip: int = 0, limit: int
             supply.product_name = supply.product.name
     
     return supplies
+
+
+def update_product_quantity(db: Session, product_id: int, new_quantity: int) -> bool:
+    """Обновляет количество товара (ручное изменение)"""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return False
+    
+    # Обновляем количество
+    product.quantity = new_quantity
+    
+    # Автоматически обновляем статус наличия
+    if new_quantity > 0:
+        product.availability_status = 'IN_STOCK'
+    else:
+        product.availability_status = 'OUT_OF_STOCK'
+    
+    db.commit()
+    db.refresh(product)
+    return True

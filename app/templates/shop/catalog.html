@@ -1,0 +1,176 @@
+{% extends "shop/base.html" %}
+
+{% block title %}Sirius Group{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <p class="text-gray-600">Выберите товары для добавления в корзину</p>
+</div>
+
+<!-- Фильтры и сортировка -->
+<div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
+    <div class="flex gap-2">
+        <select id="sort-select" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="name">По названию</option>
+            <option value="price">По цене</option>
+            <option value="stock">По наличию</option>
+        </select>
+    </div>
+    
+    <div class="text-sm text-gray-600">
+        Найдено товаров: <span class="font-medium">{{ products|length }}</span>
+    </div>
+</div>
+
+<!-- Сетка товаров -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {% for product in products %}
+    <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
+        <!-- Фото товара -->
+        <a href="/shop/product/{{ product.id }}" class="block">
+            <div class="aspect-w-1 aspect-h-1 w-full">
+            {% if product.main_photo %}
+            <img src="/static/{{ product.main_photo.file_path.replace('app/static/', '') }}" 
+                 alt="{{ product.name }}"
+                 class="w-full h-48 object-cover"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="w-full h-48 bg-gray-200 flex items-center justify-center" style="display: none;">
+                <div class="text-center">
+                    <i class="fas fa-image text-gray-400 text-4xl mb-2"></i>
+                    <p class="text-gray-500 text-sm">Фото недоступно</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                <div class="text-center">
+                    <i class="fas fa-image text-gray-400 text-4xl mb-2"></i>
+                    <p class="text-gray-500 text-sm">Нет фото</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        </a>
+        
+        <!-- Информация о товаре -->
+        <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                <a href="/shop/product/{{ product.id }}" class="hover:text-blue-600">
+                    {{ product.name }}
+                </a>
+            </h3>
+            
+
+            
+            <!-- Статус наличия -->
+            <div class="mb-3">
+                {% if product.quantity > 0 %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-1"></i>
+                    В наличии
+                </span>
+                {% elif product.expected_date %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <i class="fas fa-clock mr-1"></i>
+                    Под заказ (Дата доставки: {{ product.expected_date.strftime('%d.%m.%Y') }})
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    <i class="fas fa-question-circle mr-1"></i>
+                    Под заказ
+                </span>
+                {% endif %}
+            </div>
+            
+            <!-- Цена -->
+            <div class="mb-4">
+                {% if product.sell_price_rub %}
+                <p class="text-2xl font-bold text-blue-600">
+                    {{ "%.2f"|format(product.sell_price_rub) }} ₽
+                </p>
+                {% else %}
+                <p class="text-lg text-gray-500">Цена по запросу</p>
+                {% endif %}
+            </div>
+            
+            <!-- Кнопка добавления в корзину -->
+            {% if product.quantity > 0 or product.expected_date %}
+            <form method="POST" action="/shop/cart/add" class="space-y-3">
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+                
+                <div class="flex items-center space-x-2">
+                    <label for="qty-{{ product.id }}" class="text-sm text-gray-600">Количество:</label>
+                                    <input type="number" 
+                       name="quantity" 
+                       id="qty-{{ product.id }}"
+                       value="1" 
+                       min="1" 
+                       class="w-16 border border-gray-300 rounded px-2 py-1 text-sm">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200">
+                    <i class="fas fa-cart-plus mr-2"></i>
+                    Добавить в корзину
+                </button>
+            </form>
+            {% else %}
+            <button disabled 
+                    class="w-full bg-gray-300 text-gray-500 font-medium py-2 px-4 rounded-md cursor-not-allowed">
+                <i class="fas fa-ban mr-2"></i>
+                Недоступно
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Сообщение если товаров нет -->
+{% if not products %}
+<div class="text-center py-12">
+    <i class="fas fa-box-open text-gray-400 text-6xl mb-4"></i>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">Товары не найдены</h3>
+    <p class="text-gray-500">В данный момент в каталоге нет доступных товаров.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sortSelect = document.getElementById('sort-select');
+    
+    sortSelect.addEventListener('change', function() {
+        const sortBy = this.value;
+        const productCards = Array.from(document.querySelectorAll('.product-card'));
+        
+        productCards.sort((a, b) => {
+            let aValue, bValue;
+            
+            switch(sortBy) {
+                case 'name':
+                    aValue = a.querySelector('h3').textContent.toLowerCase();
+                    bValue = b.querySelector('h3').textContent.toLowerCase();
+                    return aValue.localeCompare(bValue);
+                    
+                case 'price':
+                    aValue = parseFloat(a.querySelector('.text-2xl')?.textContent?.replace(/[^\d.]/g, '') || '0');
+                    bValue = parseFloat(b.querySelector('.text-2xl')?.textContent?.replace(/[^\d.]/g, '') || '0');
+                    return aValue - bValue;
+                    
+                case 'stock':
+                    aValue = a.querySelector('.bg-green-100') ? 1 : 0;
+                    bValue = b.querySelector('.bg-green-100') ? 1 : 0;
+                    return bValue - aValue;
+                    
+                default:
+                    return 0;
+            }
+        });
+        
+        const container = document.querySelector('.grid');
+        productCards.forEach(card => container.appendChild(card));
+    });
+});
+</script>
+{% endblock %}

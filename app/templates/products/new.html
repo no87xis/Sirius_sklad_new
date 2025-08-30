@@ -26,12 +26,12 @@
         <!-- Форма создания товара -->
         <div class="bg-white shadow sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <form method="POST" action="/products" class="space-y-6">
+                <form method="POST" action="/products" enctype="multipart/form-data" class="space-y-6" id="product-form">
                     <!-- Основная информация -->
                     <div>
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Основная информация</h3>
                         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                            <div class="sm:col-span-2">
+                            <div>
                                 <label for="name" class="block text-sm font-medium text-gray-700">
                                     Название товара *
                                 </label>
@@ -47,6 +47,16 @@
                                 <textarea name="description" id="description" rows="3"
                                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
                                           placeholder="Краткое описание товара"></textarea>
+                            </div>
+                            
+                            <div class="sm:col-span-2">
+                                <label for="detailed_description" class="block text-sm font-medium text-gray-700">
+                                    Подробное описание для магазина
+                                </label>
+                                <textarea name="detailed_description" id="detailed_description" rows="4"
+                                          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                          placeholder="Подробное описание товара для клиентов магазина"></textarea>
+                                <p class="mt-1 text-xs text-gray-500">Это описание будет видно клиентам в магазине</p>
                             </div>
 
                             <div>
@@ -64,6 +74,43 @@
                                 </label>
                                 <input type="number" name="initial_quantity" id="initial_quantity" value="0" min="0"
                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Фото товара -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Фото товара</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="photos" class="block text-sm font-medium text-gray-700">
+                                    Загрузить фото
+                                </label>
+                                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                                    <div class="space-y-1 text-center">
+                                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        <div class="flex text-sm text-gray-600">
+                                            <label for="photos" class="relative cursor-pointer bg-white rounded-md font-medium text-sirius-blue hover:text-sirius-indigo focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-sirius-blue">
+                                                <span>Загрузить фото</span>
+                                                <input id="photos" name="photos" type="file" class="sr-only" accept="image/*">
+                                            </label>
+                                            <p class="pl-1">или перетащите сюда</p>
+                                        </div>
+                                        <p class="text-xs text-gray-500">
+                                            PNG, JPG, JPEG, WEBP до 10MB. Одно фото на товар.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Предварительный просмотр загруженных фото -->
+                            <div id="photo-preview" class="hidden">
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">Предварительный просмотр:</h4>
+                                <div id="photo-grid" class="grid grid-cols-3 gap-4">
+                                    <!-- Фото будут добавлены сюда -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -128,4 +175,84 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('photos');
+    const photoPreview = document.getElementById('photo-preview');
+    const photoGrid = document.getElementById('photo-grid');
+    const productForm = document.getElementById('product-form');
+    
+
+    
+    fileInput.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        
+
+        
+        if (files.length === 0) {
+            photoPreview.classList.add('hidden');
+            return;
+        }
+        
+        // Ограничиваем количество файлов
+        if (files.length > 1) {
+            alert('Максимальное количество фото: 1');
+            e.target.value = '';
+            return;
+        }
+        
+        // Очищаем предыдущий предварительный просмотр
+        photoGrid.innerHTML = '';
+        
+        // Создаём предварительный просмотр для каждого файла
+        files.forEach((file, index) => {
+            if (!file.type.startsWith('image/')) {
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const photoDiv = document.createElement('div');
+                photoDiv.className = 'relative group';
+                
+                photoDiv.innerHTML = `
+                    <img src="${e.target.result}" alt="Предварительный просмотр" 
+                         class="w-full h-24 object-cover rounded-lg border border-gray-300">
+                    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <button type="button" onclick="removePhoto(${index})" 
+                                class="bg-red-500 hover:bg-red-600 text-white rounded-full p-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500 text-center truncate">${file.name}</div>
+                `;
+                
+                photoGrid.appendChild(photoDiv);
+            };
+            
+            reader.readAsDataURL(file);
+        });
+        
+        photoPreview.classList.remove('hidden');
+    });
+});
+
+function removePhoto(index) {
+    const fileInput = document.getElementById('photos');
+    const dt = new DataTransfer();
+    const files = Array.from(fileInput.files);
+    
+    files.splice(index, 1);
+    files.forEach(file => dt.items.add(file));
+    
+    fileInput.files = dt.files;
+    
+    // Перезапускаем событие change для обновления предварительного просмотра
+    const event = new Event('change');
+    fileInput.dispatchEvent(event);
+}
+</script>
 {% endblock %}

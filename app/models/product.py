@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Numeric, DateTime
+from sqlalchemy import Column, Integer, String, Text, Numeric, DateTime, Date
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from ..db import Base
@@ -10,6 +10,7 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
+    detailed_description = Column(Text, nullable=True)  # Подробное описание для магазина
     
     # Учётные поля
     quantity = Column(Integer, default=0, nullable=False)  # общий приход
@@ -18,6 +19,10 @@ class Product(Base):
     sell_price_rub = Column(Numeric(10, 2), nullable=True)  # плановая розничная цена (руб)
     supplier_name = Column(String, nullable=True)  # поставщик
     
+    # Новые поля для статуса товара
+    availability_status = Column(String(20), default='IN_STOCK', nullable=True, index=True)
+    expected_date = Column(Date, nullable=True)  # дата ожидаемого поступления
+    
     # Метаданные
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -25,3 +30,27 @@ class Product(Base):
     # Связи
     supplies = relationship("Supply", back_populates="product")
     orders = relationship("Order", back_populates="product")
+    photos = relationship("ProductPhoto", back_populates="product", cascade="all, delete-orphan")
+    
+    @property
+    def main_photo(self):
+        """Возвращает главное фото товара"""
+        for photo in self.photos:
+            if photo.is_main:
+                return photo
+        return self.photos[0] if self.photos else None
+    
+    @property
+    def available_photos(self):
+        """Возвращает все доступные фото товара, отсортированные по порядку"""
+        return sorted(self.photos, key=lambda x: (x.sort_order, x.created_at))
+    
+    @property
+    def stock_status(self):
+        """Возвращает статус наличия товара"""
+        if self.quantity > 0:
+            return "В наличии"
+        elif self.expected_date:
+            return f"Под заказ (ожидается {self.expected_date.strftime('%d.%m.%Y')})"
+        else:
+            return "Под заказ"

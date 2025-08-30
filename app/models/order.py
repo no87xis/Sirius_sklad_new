@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Enum, Date
 from decimal import Decimal
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -31,6 +31,16 @@ class Order(Base):
     qty = Column(Integer, nullable=False)
     unit_price_rub = Column(Numeric(10, 2), nullable=False)
     eur_rate = Column(Numeric(10, 4), nullable=False, default=Decimal("0"))
+    
+    # Новые поля для расширенной системы оплаты
+    order_code = Column(String(8), unique=True, nullable=True, index=True)
+    order_code_last4 = Column(String(4), nullable=True, index=True)
+    payment_method_id = Column(Integer, ForeignKey("payment_methods.id"), nullable=True, index=True)
+    payment_instrument_id = Column(Integer, ForeignKey("payment_instruments.id"), nullable=True, index=True)
+    paid_amount = Column(Numeric(10, 2), nullable=True)
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Старые поля (оставляем для совместимости)
     payment_method = Column(Enum(PaymentMethod), default=PaymentMethod.UNPAID, nullable=False)
     payment_note = Column(String(120), nullable=True)
     status = Column(Enum(OrderStatus), default=OrderStatus.PAID_NOT_ISSUED, nullable=False)
@@ -41,3 +51,8 @@ class Order(Base):
     # Связи
     product = relationship("Product", back_populates="orders")
     user = relationship("User", back_populates="orders")
+    
+    # Новые связи
+    payment_method_rel = relationship("PaymentMethod", back_populates="orders")
+    payment_instrument_rel = relationship("PaymentInstrument", back_populates="orders")
+    cash_flows = relationship("CashFlow", back_populates="order")
