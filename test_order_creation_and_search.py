@@ -51,16 +51,31 @@ def test_add_to_cart():
         print(f"📦 Найден товар: {product_url}")
         
         # Добавляем в корзину
+        product_id = product_url.split('/')[-1]
         cart_data = {
-            'product_id': product_url.split('/')[-1],
+            'product_id': product_id,
             'quantity': '2'
         }
         
-        response = requests.post(f"{BASE_URL}/shop/cart/add", data=cart_data)
+        print(f"DEBUG: Adding to cart: product_id={product_id}, quantity=2")
+        response = requests.post(f"{BASE_URL}/shop/cart/add", data=cart_data, allow_redirects=False)
         
         if response.status_code == 303:  # Redirect после добавления
             print("✅ Товар добавлен в корзину")
-            return True
+            
+            # Проверяем, что товар действительно в корзине
+            cart_response = requests.get(f"{BASE_URL}/shop/cart")
+            if cart_response.status_code == 200:
+                soup = BeautifulSoup(cart_response.text, 'html.parser')
+                if "Корзина пуста" not in cart_response.text:
+                    print("✅ Корзина содержит товары")
+                    return True
+                else:
+                    print("❌ Корзина пуста после добавления")
+                    return False
+            else:
+                print(f"❌ Не удалось проверить корзину: {cart_response.status_code}")
+                return False
         else:
             print(f"❌ Ошибка добавления в корзину: {response.status_code}")
             return False
@@ -73,6 +88,35 @@ def test_checkout():
     """Тест оформления заказа"""
     print("💳 Тестируем оформление заказа...")
     try:
+        # Создаем сессию для сохранения cookies
+        session = requests.Session()
+        
+        # Сначала добавляем товар в корзину
+        response = session.get(f"{BASE_URL}/shop/")
+        if response.status_code != 200:
+            print(f"❌ Не удалось получить страницу магазина: {response.status_code}")
+            return None
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        product_links = soup.find_all('a', href=lambda x: x and '/shop/product/' in x)
+        
+        if not product_links:
+            print("❌ Товары не найдены в магазине")
+            return None
+        
+        # Добавляем товар в корзину
+        product_id = product_links[0]['href'].split('/')[-1]
+        cart_data = {
+            'product_id': product_id,
+            'quantity': '2'
+        }
+        
+        cart_response = session.post(f"{BASE_URL}/shop/cart/add", data=cart_data, allow_redirects=False)
+        if cart_response.status_code != 303:
+            print(f"❌ Не удалось добавить товар в корзину: {cart_response.status_code}")
+            return None
+        
+        # Теперь оформляем заказ
         checkout_data = {
             'customer_name': 'Тест Тестов',
             'customer_phone': '+7 (999) 123-45-67',
@@ -80,20 +124,33 @@ def test_checkout():
             'payment_method_id': '1'  # ID способа оплаты
         }
         
-        response = requests.post(f"{BASE_URL}/shop/checkout", data=checkout_data)
+        response = session.post(f"{BASE_URL}/shop/checkout", data=checkout_data, allow_redirects=False)
         
-        if response.status_code == 200:
+        if response.status_code == 303:  # Redirect после успешного оформления
             print("✅ Заказ оформлен")
-            # Ищем код заказа в ответе
-            soup = BeautifulSoup(response.text, 'html.parser')
-            order_code_elem = soup.find('span', class_='font-mono')
-            if order_code_elem:
-                order_code = order_code_elem.text.strip()
-                print(f"📋 Код заказа: {order_code}")
-                return order_code
+            # Получаем URL редиректа
+            redirect_url = response.headers.get('Location')
+            print(f"DEBUG: Redirect URL: {redirect_url}")
+            
+            if redirect_url and 'order-success' in redirect_url:
+                print(f"DEBUG: order-success found in redirect URL")
+                # Извлекаем коды заказов из URL
+                if 'codes=' in redirect_url:
+                    codes_param = redirect_url.split('codes=')[1]
+                    print(f"DEBUG: Codes parameter: {codes_param}")
+                    order_codes = codes_param.split(',')
+                    print(f"DEBUG: Order codes: {order_codes}")
+                    if order_codes:
+                        order_code = order_codes[0]  # Берем первый код
+                        print(f"📋 Код заказа: {order_code}")
+                        return order_code
+                else:
+                    print("DEBUG: No 'codes=' found in redirect URL")
             else:
-                print("⚠️ Код заказа не найден в ответе")
-                return None
+                print(f"DEBUG: order-success not found in redirect URL or no redirect URL")
+            
+            print("⚠️ Код заказа не найден в редиректе")
+            return None
         else:
             print(f"❌ Ошибка оформления заказа: {response.status_code}")
             return None

@@ -19,9 +19,13 @@ router = APIRouter(prefix="/shop", tags=["shop"])
 def get_session_id(request: Request) -> str:
     """Получает или создаёт ID сессии для корзины"""
     session_id = request.session.get("cart_session_id")
+    print(f"DEBUG: get_session_id called, existing session_id: {session_id}")
     if not session_id:
         session_id = str(uuid.uuid4())
         request.session["cart_session_id"] = session_id
+        print(f"DEBUG: Created new session_id: {session_id}")
+    else:
+        print(f"DEBUG: Using existing session_id: {session_id}")
     return session_id
 
 
@@ -98,6 +102,7 @@ async def add_to_cart_post(
     session_id = get_session_id(request)
     
     try:
+        from app.schemas.shop_cart import ShopCartCreate
         cart_data = ShopCartCreate(session_id=session_id, product_id=product_id, quantity=quantity)
         result = ShopCartService.add_to_cart(db, cart_data)
         if result:
@@ -180,12 +185,17 @@ async def process_checkout(
         orders = ShopOrderService.create_orders_from_cart(db, order_data)
         
         if orders:
+            print(f"DEBUG: Orders created successfully: {len(orders)}")
+            for order in orders:
+                print(f"DEBUG: Order {order.id}: code={order.order_code}, product={order.product_name}")
+            
             # Очищаем корзину
             ShopCartService.clear_cart(db, session_id)
             
             # Формируем коды заказов для редиректа
             order_codes = [order.order_code for order in orders]
             codes_param = ','.join(order_codes)
+            print(f"DEBUG: Redirecting to order-success with codes: {codes_param}")
             
             return RedirectResponse(url=f"/shop/order-success?codes={codes_param}", status_code=303)
         else:
@@ -278,6 +288,7 @@ async def order_success(
 ):
     """Страница успешного создания заказа"""
     order_codes = codes.split(',')
+    print(f"DEBUG: order_success called with codes: {codes}")
     
     # Получаем информацию о заказах
     orders = []
@@ -285,11 +296,15 @@ async def order_success(
         # Ищем заказ по коду (без телефона для отображения)
         from app.models import ShopOrder
         order = db.query(ShopOrder).filter(ShopOrder.order_code == code).first()
+        print(f"DEBUG: Looking for order with code {code}, found: {order is not None}")
         if order:
+            print(f"DEBUG: Order found: {order.order_code}, product: {order.product_name}")
             # Генерируем QR-код если его нет
             if not order.has_qr:
                 QRService.generate_qr_for_order(db, order)
             orders.append(order)
+    
+    print(f"DEBUG: Total orders found: {len(orders)}")
     
     return templates.TemplateResponse("shop/order-success.html", {
         "request": request,
