@@ -45,6 +45,11 @@ class ShopOrder(Base):
     reserved_until = Column(DateTime(timezone=True), nullable=True)  # До какого времени зарезервирован (может быть NULL)
     expected_delivery_date = Column(Date, nullable=True)  # Ожидаемая дата поступления
     
+    # QR-код поля
+    qr_payload = Column(Text, nullable=True, index=True)  # Уникальный токен для QR-кода
+    qr_image_path = Column(Text, nullable=True)  # Путь к изображению QR-кода
+    qr_generated_at = Column(DateTime(timezone=True), nullable=True)  # Когда сгенерирован QR-код
+    
     # Метаданные
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -68,3 +73,8 @@ class ShopOrder(Base):
     def is_reserved(self) -> bool:
         """Проверяет, активен ли резерв"""
         return self.status == ShopOrderStatus.RESERVED and not self.is_expired
+    
+    @property
+    def has_qr(self) -> bool:
+        """Проверяет, есть ли QR-код у заказа"""
+        return bool(self.qr_payload and self.qr_image_path)

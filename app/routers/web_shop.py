@@ -8,6 +8,7 @@ from app.services.products import get_products
 from app.services.shop_cart import ShopCartService
 from app.services.shop_orders import ShopOrderService
 from app.services.payments import PaymentService
+from app.services.qr_service import QRService
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="app/templates")
@@ -96,48 +97,32 @@ async def add_to_cart_post(
     """Добавляет товар в корзину (POST)"""
     session_id = get_session_id(request)
     
-    from app.schemas.shop_cart import ShopCartCreate
-    cart_data = ShopCartCreate(
-        product_id=product_id,
-        quantity=quantity,
-        session_id=session_id
-    )
-    
     try:
-        ShopCartService.add_to_cart(db, cart_data)
-        return RedirectResponse(url="/shop/cart", status_code=303)
+        cart_data = ShopCartCreate(session_id=session_id, product_id=product_id, quantity=quantity)
+        result = ShopCartService.add_to_cart(db, cart_data)
+        if result:
+            return RedirectResponse(url="/shop/cart", status_code=303)
+        else:
+            return RedirectResponse(url="/shop/cart?error=add_failed", status_code=303)
     except Exception as e:
-        # В случае ошибки возвращаемся на страницу товара
-        return RedirectResponse(url=f"/shop/product/{product_id}?error={str(e)}", status_code=303)
+        print(f"ERROR adding to cart: {str(e)}")
+        return RedirectResponse(url=f"/shop/cart?error={str(e)}", status_code=303)
 
 
-@router.post("/cart/update")
-async def update_cart_post(
+@router.post("/cart/remove")
+async def remove_from_cart_post(
     request: Request,
     product_id: int = Form(...),
-    quantity: int = Form(...),
     db: Session = Depends(get_db)
 ):
-    """Обновляет корзину (POST)"""
+    """Удаляет товар из корзины (POST)"""
     session_id = get_session_id(request)
     
-    if quantity <= 0:
-        ShopCartService.remove_from_cart(db, session_id, product_id)
-    else:
-        ShopCartService.update_cart_item(db, session_id, product_id, quantity)
-    
-    return RedirectResponse(url="/shop/cart", status_code=303)
-
-
-@router.post("/cart/clear")
-async def clear_cart_post(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """Очищает корзину (POST)"""
-    session_id = get_session_id(request)
-    ShopCartService.clear_cart(db, session_id)
-    return RedirectResponse(url="/shop/cart", status_code=303)
+    try:
+        success = ShopCartService.remove_from_cart(db, session_id, product_id)
+        return RedirectResponse(url="/shop/cart", status_code=303)
+    except Exception as e:
+        return RedirectResponse(url=f"/shop/cart?error={str(e)}", status_code=303)
 
 
 @router.get("/checkout", response_class=HTMLResponse)
@@ -153,7 +138,8 @@ async def shop_checkout(
         return RedirectResponse(url="/shop/cart", status_code=303)
     
     # Получаем способы оплаты
-    payment_methods = PaymentService.get_active_payment_methods(db)
+    from app.models import PaymentMethod
+    payment_methods = db.query(PaymentMethod).all()
     
     return templates.TemplateResponse("shop/checkout.html", {
         "request": request,
@@ -163,67 +149,50 @@ async def shop_checkout(
 
 
 @router.post("/checkout")
-async def create_order_post(
+async def process_checkout(
     request: Request,
     customer_name: str = Form(...),
     customer_phone: str = Form(...),
-    customer_city: Optional[str] = Form(None),
+    customer_city: str = Form(...),
     payment_method_id: Optional[int] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Создаёт заказы из корзины (POST)"""
+    """Обрабатывает оформление заказа"""
     session_id = get_session_id(request)
+    cart_summary = ShopCartService.get_cart_summary(db, session_id)
     
-    # Проверяем валидность корзины
-    errors = ShopCartService.validate_cart(db, session_id)
-    if errors:
-        # Возвращаемся на страницу оформления с ошибками
-        return RedirectResponse(
-            url=f"/shop/checkout?errors={'&'.join(errors)}", 
-            status_code=303
-        )
-    
-    # Валидация и очистка номера телефона
-    phone_digits = ''.join(filter(str.isdigit, customer_phone))
-    if len(phone_digits) < 10:
-        return RedirectResponse(
-            url=f"/shop/checkout?error=Неверный формат номера телефона. Введите минимум 10 цифр.", 
-            status_code=303
-        )
-    
-    # Очищаем номер телефона от лишних символов
-    cleaned_phone = customer_phone.strip()
-    
-    # Получаем товары из корзины
-    cart_items = ShopCartService.get_cart_items(db, session_id)
-    
-    # Создаём данные для заказа
-    from app.schemas.shop_order import ShopOrderCreate
-    order_data = ShopOrderCreate(
-        customer_name=customer_name,
-        customer_phone=cleaned_phone,
-        customer_city=customer_city,
-        payment_method_id=payment_method_id,
-        cart_items=[{"product_id": item.product_id, "quantity": item.quantity} for item in cart_items]
-    )
+    if not cart_summary.items:
+        return RedirectResponse(url="/shop/cart", status_code=303)
     
     try:
+        from app.schemas.shop_order import ShopOrderCreate
+        
+        # Создаем данные заказа
+        order_data = ShopOrderCreate(
+            customer_name=customer_name,
+            customer_phone=customer_phone,
+            customer_city=customer_city,
+            payment_method_id=payment_method_id,
+            cart_items=cart_summary.items
+        )
+        
+        # Создаем заказы
         orders = ShopOrderService.create_orders_from_cart(db, order_data)
         
-        # Очищаем корзину
-        ShopCartService.clear_cart(db, session_id)
-        
-        # Перенаправляем на страницу успешного заказа
-        order_codes = [order.order_code for order in orders]
-        return RedirectResponse(
-            url=f"/shop/order-success?codes={','.join(order_codes)}", 
-            status_code=303
-        )
+        if orders:
+            # Очищаем корзину
+            ShopCartService.clear_cart(db, session_id)
+            
+            # Формируем коды заказов для редиректа
+            order_codes = [order.order_code for order in orders]
+            codes_param = ','.join(order_codes)
+            
+            return RedirectResponse(url=f"/shop/order-success?codes={codes_param}", status_code=303)
+        else:
+            return RedirectResponse(url="/shop/checkout?error=creation_failed", status_code=303)
+            
     except Exception as e:
-        return RedirectResponse(
-            url=f"/shop/checkout?error={str(e)}", 
-            status_code=303
-        )
+        return RedirectResponse(url=f"/shop/checkout?error={str(e)}", status_code=303)
 
 
 def generate_whatsapp_message(orders, request, db=None):
@@ -240,6 +209,13 @@ def generate_whatsapp_message(orders, request, db=None):
         message_parts.append(f"   Количество: {order.quantity}")
         message_parts.append(f"   Стоимость: {order.total_amount} ₽")
         message_parts.append(f"   Код заказа: {order.order_code}")
+        
+        # Добавляем ссылку на QR-страницу если есть
+        if order.has_qr:
+            qr_url = QRService.get_qr_public_url(order)
+            if qr_url:
+                message_parts.append(f"   QR-ссылка: {request.base_url}{qr_url}")
+        
         message_parts.append(f"   Ссылка: {request.base_url}shop/order/{order.order_code}")
         message_parts.append("")
     
@@ -310,12 +286,16 @@ async def order_success(
         from app.models import ShopOrder
         order = db.query(ShopOrder).filter(ShopOrder.order_code == code).first()
         if order:
+            # Генерируем QR-код если его нет
+            if not order.has_qr:
+                QRService.generate_qr_for_order(db, order)
             orders.append(order)
     
     return templates.TemplateResponse("shop/order-success.html", {
         "request": request,
         "orders": orders,
-        "generate_whatsapp_message": generate_whatsapp_message
+        "generate_whatsapp_message": generate_whatsapp_message,
+        "qr_service": QRService
     })
 
 
@@ -335,9 +315,14 @@ async def view_order(
             "order_code": order_code
         })
     
+    # Генерируем QR-код если его нет
+    if not order.has_qr:
+        QRService.generate_qr_for_order(db, order)
+    
     return templates.TemplateResponse("shop/order-detail.html", {
         "request": request,
-        "order": order
+        "order": order,
+        "qr_service": QRService
     })
 
 
@@ -383,73 +368,31 @@ async def search_order_post(
     })
 
 
-# Админка заказов магазина
-@router.get("/admin/orders", response_class=HTMLResponse)
-async def shop_admin_orders(
+# Публичный роут для доступа по QR-коду
+@router.get("/o/{qr_token}", response_class=HTMLResponse)
+async def public_order_view(
     request: Request,
-    status_filter: Optional[str] = Query(None),
-    phone_search: Optional[str] = Query(None),
-    code_search: Optional[str] = Query(None),
+    qr_token: str,
     db: Session = Depends(get_db)
 ):
-    """Страница управления заказами магазина (админка)"""
-    # Получаем все заказы
-    orders = ShopOrderService.get_recent_orders(db, limit=1000)
+    """Публичный просмотр заказа по QR-токену (без авторизации)"""
+    # Проверяем валидность токена
+    if not QRService.is_valid_qr_token(qr_token):
+        raise HTTPException(status_code=404, detail="Неверный QR-код")
     
-    # Фильтрация по статусу
-    if status_filter:
-        orders = [order for order in orders if order.status == status_filter]
-    
-    # Фильтрация по телефону
-    if phone_search:
-        orders = [order for order in orders if phone_search.lower() in order.customer_phone.lower()]
-    
-    # Фильтрация по коду заказа
-    if code_search:
-        orders = [order for order in orders if code_search.upper() == order.order_code.upper()]
-    
-    # Получаем аналитику
-    analytics = ShopOrderService.get_analytics(db)
-    
-    return templates.TemplateResponse("shop/admin/orders.html", {
-        "request": request,
-        "orders": orders,
-        "analytics": analytics,
-        "status_filter": status_filter,
-        "phone_search": phone_search,
-        "code_search": code_search
-    })
-
-
-@router.get("/admin/orders/{order_id:int}", response_class=HTMLResponse)
-async def shop_admin_order_detail(
-    request: Request,
-    order_id: int,
-    db: Session = Depends(get_db)
-):
-    """Страница детального просмотра заказа магазина (админка)"""
-    from app.models import ShopOrder
-    order = db.query(ShopOrder).filter(ShopOrder.id == order_id).first()
+    # Получаем заказ по QR-токену
+    order = QRService.get_order_by_qr_token(db, qr_token)
     if not order:
         raise HTTPException(status_code=404, detail="Заказ не найден")
     
-    return templates.TemplateResponse("shop/admin/order-detail.html", {
+    # Проверяем, что заказ не отменен
+    from app.models import ShopOrderStatus
+    if order.status == ShopOrderStatus.CANCELLED:
+        raise HTTPException(status_code=404, detail="Заказ отменен")
+    
+    return templates.TemplateResponse("shop/order-detail.html", {
         "request": request,
-        "order": order
+        "order": order,
+        "qr_service": QRService,
+        "is_public_view": True  # Флаг для отображения публичной версии
     })
-
-
-@router.post("/admin/orders/{order_id:int}/reserve")
-async def shop_admin_reserve_order(
-    order_id: int,
-    db: Session = Depends(get_db)
-):
-    """Резервирует товар для заказа (API)"""
-    try:
-        success = ShopOrderService.reserve_product_on_payment(db, order_id)
-        if success:
-            return {"success": True, "message": "Товар успешно зарезервирован"}
-        else:
-            return {"success": False, "message": "Не удалось зарезервировать товар"}
-    except Exception as e:
-        return {"success": False, "message": f"Ошибка: {str(e)}"}

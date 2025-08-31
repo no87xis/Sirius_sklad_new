@@ -5,7 +5,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from .config import settings
 from .db import engine, Base, get_db
-from .routers import web_public, web_products, web_orders, web_analytics, web_admin_panel, api, web_shop, shop_api
+from .routers import web_public, web_products, web_orders, web_analytics, web_admin_panel, api, web_shop, shop_api, shop_admin
 from .services.auth import get_current_user_optional
 
 # Create tables
@@ -42,6 +42,7 @@ app.include_router(web_admin_panel.router)
 app.include_router(api.router, prefix="/api")
 app.include_router(web_shop.router)
 app.include_router(shop_api.router)
+app.include_router(shop_admin.router)
 
 
 

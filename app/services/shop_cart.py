@@ -28,7 +28,11 @@ class ShopCartService:
             return existing_item
         else:
             # Создаём новый элемент корзины
-            cart_item = ShopCart(**cart_data.dict())
+            cart_item = ShopCart(
+                session_id=cart_data.session_id,
+                product_id=cart_data.product_id,
+                quantity=cart_data.quantity
+            )
             db.add(cart_item)
             db.commit()
             db.refresh(cart_item)

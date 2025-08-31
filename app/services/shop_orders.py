@@ -6,6 +6,7 @@ from decimal import Decimal
 from app.models import ShopOrder, ShopOrderStatus, Product, PaymentMethodModel
 from app.schemas.shop_order import ShopOrderCreate, ShopOrderUpdate, ShopOrderSearch, ShopOrderAnalytics
 from app.services.order_code import OrderCodeService
+from app.services.qr_service import QRService
 
 
 class ShopOrderService:
@@ -17,8 +18,8 @@ class ShopOrderService:
         orders = []
         
         for cart_item in order_data.cart_items:
-            # Получаем информацию о товаре
-            product = db.query(Product).filter(Product.id == cart_item['product_id']).first()
+            # Получаем информацию о товару
+            product = db.query(Product).filter(Product.id == cart_item.product_id).first()
             if not product:
                 continue
             
@@ -28,7 +29,7 @@ class ShopOrderService:
             
             # Вычисляем стоимость заказа
             unit_price = product.sell_price_rub or Decimal('0')
-            total_amount = unit_price * cart_item['quantity']
+            total_amount = unit_price * cart_item.quantity
             
             # Получаем название способа оплаты
             payment_method_name = None
@@ -48,7 +49,7 @@ class ShopOrderService:
                 customer_city=order_data.customer_city,
                 product_id=product.id,
                 product_name=product.name,
-                quantity=cart_item['quantity'],
+                quantity=cart_item.quantity,
                 unit_price_rub=unit_price,
                 total_amount=total_amount,
                 payment_method_id=order_data.payment_method_id,
@@ -66,6 +67,10 @@ class ShopOrderService:
         # Обновляем объекты после коммита
         for order in orders:
             db.refresh(order)
+        
+        # Генерируем QR-коды для всех заказов
+        for order in orders:
+            QRService.generate_qr_for_order(db, order)
         
         return orders
     
