@@ -1,0 +1,126 @@
+{% extends "shop/base.html" %}
+
+{% block title %}Заказ {{ order.order_code }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- Хлебные крошки -->
+    <nav class="mb-6">
+        <ol class="flex items-center space-x-2 text-sm text-gray-500">
+            <li><a href="/shop" class="hover:text-blue-600">Главная</a></li>
+            <li><span class="mx-2">/</span></li>
+            <li><a href="/shop/search-order" class="hover:text-blue-600">Поиск заказа</a></li>
+            <li><span class="mx-2">/</span></li>
+            <li><span class="text-gray-900">Заказ {{ order.order_code }}</span></li>
+        </ol>
+    </nav>
+
+    <!-- Основная информация о заказе -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">
+                    Заказ {{ order.order_code }}
+                </h1>
+                <p class="text-gray-600">Создан {{ order.created_at.strftime('%d.%m.%Y %H:%M') if order.created_at else 'неизвестно' }}</p>
+            </div>
+        </div>
+
+        <!-- Статус заказа -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Статус заказа</h3>
+            {% if order.status == 'ordered_not_paid' %}
+            <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg">
+                <i class="fas fa-clock mr-2"></i>
+                <strong>Ожидает оплаты</strong>
+                <p class="text-sm mt-1">Заказ оформлен, но не оплачен</p>
+            </div>
+            {% elif order.status == 'paid_waiting_pickup' %}
+            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+                <i class="fas fa-check-circle mr-2"></i>
+                <strong>Оплачен, ожидает выдачи</strong>
+            </div>
+            {% else %}
+            <div class="bg-gray-100 border border-gray-400 text-gray-700 px-4 py-3 rounded-lg">
+                <i class="fas fa-info-circle mr-2"></i>
+                <strong>Статус: {{ order.status }}</strong>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Информация о клиенте -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Информация о клиенте</h3>
+                <div class="space-y-2">
+                    <p><strong>Имя:</strong> {{ order.customer_name }}</p>
+                    <p><strong>Телефон:</strong> {{ order.customer_phone }}</p>
+                    <p><strong>Город:</strong> 
+                        {% if order.customer_city == 'custom' %}
+                            Не указан
+                        {% else %}
+                            {{ order.customer_city or 'Не указан' }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Информация о заказе</h3>
+                <div class="space-y-2">
+                    <p><strong>Способ оплаты:</strong> {{ order.payment_method.name if order.payment_method else 'Не указан' }}</p>
+                    <p><strong>Общая сумма:</strong> <span class="text-xl font-bold text-blue-600">{{ "%.2f"|format(order.total_amount) }} ₽</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Товар в заказе -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Товар в заказе</h3>
+        
+        <div class="border border-gray-200 rounded-lg p-4">
+            <div class="flex items-start space-x-4">
+                <!-- Фото товара -->
+                <div class="flex-shrink-0">
+                    {% if order.product and order.product.photos %}
+                    <img src="/static/{{ order.product.photos[0].file_path.replace('app/static/', '') }}" 
+                         alt="{{ order.product_name }}"
+                         class="w-20 h-20 object-cover rounded-lg"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center" style="display: none;">
+                        <i class="fas fa-image text-gray-400"></i>
+                    </div>
+                    {% else %}
+                    <div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-image text-gray-400"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Информация о товаре -->
+                <div class="flex-1">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-2">{{ order.product_name }}</h4>
+                    <div class="space-y-1 text-sm text-gray-600">
+                        <p><strong>Количество:</strong> {{ order.quantity }}</p>
+                        <p><strong>Цена за единицу:</strong> {{ "%.2f"|format(order.unit_price_rub) }} ₽</p>
+                        <p><strong>Общая стоимость:</strong> {{ "%.2f"|format(order.total_amount) }} ₽</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Навигация -->
+    <div class="mt-8 text-center space-x-4">
+        <a href="/shop" class="text-blue-600 hover:text-blue-800 font-medium">
+            <i class="fas fa-shopping-bag mr-2"></i>
+            Вернуться в магазин
+        </a>
+        <a href="/shop/search-order" class="text-blue-600 hover:text-blue-800 font-medium">
+            <i class="fas fa-search mr-2"></i>
+            Проверить другой заказ
+        </a>
+    </div>
+</div>
+{% endblock %}

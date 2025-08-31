@@ -17,10 +17,10 @@
         <!-- Фото товара -->
         <div class="space-y-4">
             {% if product.main_photo %}
-            <div class="aspect-w-1 aspect-h-1 w-full">
+            <div class="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg">
                 <img src="/static/{{ product.main_photo.file_path.replace('app/static/', '') }}" 
                      alt="{{ product.name }}"
-                     class="w-full h-96 object-cover rounded-lg shadow-lg"
+                     class="w-full h-96 object-cover object-center rounded-lg shadow-lg transition-transform duration-300 hover:scale-105"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <div class="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center" style="display: none;">
                     <div class="text-center">
@@ -51,15 +51,10 @@
                         <i class="fas fa-check-circle mr-2"></i>
                         В наличии
                     </span>
-                    {% elif product.expected_date %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                        <i class="fas fa-clock mr-2"></i>
-                        Под заказ (Дата доставки: {{ product.expected_date.strftime('%d.%m.%Y') }})
-                    </span>
                     {% else %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                        <i class="fas fa-question-circle mr-2"></i>
-                        Под заказ
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                        <i class="fas fa-times-circle mr-2"></i>
+                        Нет в наличии
                     </span>
                     {% endif %}
                 </div>

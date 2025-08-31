@@ -50,7 +50,7 @@
 ### Быстрый минимальный запуск (без демо-данных)
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
+source venv/bin/activate  # Linux/Mac!!
 # или
 venv\Scripts\activate     # Windows
 

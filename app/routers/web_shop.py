@@ -183,6 +183,17 @@ async def create_order_post(
             status_code=303
         )
     
+    # Валидация и очистка номера телефона
+    phone_digits = ''.join(filter(str.isdigit, customer_phone))
+    if len(phone_digits) < 10:
+        return RedirectResponse(
+            url=f"/shop/checkout?error=Неверный формат номера телефона. Введите минимум 10 цифр.", 
+            status_code=303
+        )
+    
+    # Очищаем номер телефона от лишних символов
+    cleaned_phone = customer_phone.strip()
+    
     # Получаем товары из корзины
     cart_items = ShopCartService.get_cart_items(db, session_id)
     
@@ -190,7 +201,7 @@ async def create_order_post(
     from app.schemas.shop_order import ShopOrderCreate
     order_data = ShopOrderCreate(
         customer_name=customer_name,
-        customer_phone=customer_phone,
+        customer_phone=cleaned_phone,
         customer_city=customer_city,
         payment_method_id=payment_method_id,
         cart_items=[{"product_id": item.product_id, "quantity": item.quantity} for item in cart_items]
@@ -215,23 +226,70 @@ async def create_order_post(
         )
 
 
-def generate_whatsapp_message(orders):
+def generate_whatsapp_message(orders, request, db=None):
     """Генерирует сообщение для WhatsApp"""
     if not orders:
         return "Здравствуйте! У меня есть вопрос по заказу."
     
-    message_parts = ["Здравствуйте! Я оформил заказ:"]
+    message_parts = ["🛍 Заказ в магазине SIRIUS_GROUPE"]
+    message_parts.append("")
+    message_parts.append("📋 Детали заказа:")
     
-    for order in orders:
-        message_parts.append(f"• {order.product_name} - {order.quantity} шт. - {order.total_amount} ₽")
+    for i, order in enumerate(orders, 1):
+        message_parts.append(f"{i}. {order.product_name or 'Товар'}")
+        message_parts.append(f"   Количество: {order.quantity}")
+        message_parts.append(f"   Стоимость: {order.total_amount} ₽")
+        message_parts.append(f"   Код заказа: {order.order_code}")
+        message_parts.append(f"   Ссылка: {request.base_url}shop/order/{order.order_code}")
+        message_parts.append("")
     
     total_amount = sum(order.total_amount for order in orders)
-    message_parts.append(f"Общая сумма: {total_amount} ₽")
+    message_parts.append(f"💰 Итого: {total_amount} ₽")
+    message_parts.append(f"📱 Телефон: {orders[0].customer_phone if orders else ''}")
+    message_parts.append(f"👤 Имя: {orders[0].customer_name if orders else ''}")
     
-    # Добавляем ссылки на заказы
-    message_parts.append("Ссылки на заказы:")
-    for order in orders:
-        message_parts.append(f"• {order.order_code}: https://sirius-shop.ru/shop/order/{order.order_code}?phone={order.customer_phone}")
+    # Исправляем отображение города
+    city = orders[0].customer_city if orders and orders[0].customer_city else ''
+    if city == 'custom':
+        city = 'Не указан'
+    message_parts.append(f"🏙 Город: {city}")
+    message_parts.append("")
+    
+    # Добавляем информацию о способе оплаты
+    from datetime import datetime, timedelta
+    
+    # Получаем способ оплаты
+    payment_method_name = "не указан"
+    if orders and orders[0].payment_method_id:
+        # Сначала пробуем получить из relationship
+        if hasattr(orders[0], 'payment_method') and orders[0].payment_method:
+            payment_method_name = orders[0].payment_method.name
+        # Если не получилось, берем из поля payment_method_name
+        elif hasattr(orders[0], 'payment_method_name') and orders[0].payment_method_name:
+            payment_method_name = orders[0].payment_method_name
+        # Если и это не работает, делаем запрос к базе
+        elif db:
+            try:
+                from app.models import PaymentMethod
+                payment_method = db.query(PaymentMethod).filter(PaymentMethod.id == orders[0].payment_method_id).first()
+                if payment_method:
+                    payment_method_name = payment_method.name
+            except Exception as e:
+                print(f"ERROR getting payment method from DB: {str(e)}")
+                payment_method_name = "не указан"
+    
+    if orders and hasattr(orders[0], 'created_at') and orders[0].created_at:
+        created_at = orders[0].created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+        reserve_until = created_at + timedelta(hours=48)
+        message_parts.append(f"⏰ Резерв до {reserve_until.strftime('%H:%M %d.%m.%Y')}")
+    else:
+        now = datetime.now()
+        reserve_until = now + timedelta(hours=48)
+        message_parts.append(f"⏰ Резерв до {reserve_until.strftime('%H:%M %d.%m.%Y')}")
+    
+    message_parts.append(f"💳 Способ оплаты: {payment_method_name}")
     
     return "\n".join(message_parts)
 
@@ -265,11 +323,11 @@ async def order_success(
 async def view_order(
     request: Request,
     order_code: str,
-    phone: str,
     db: Session = Depends(get_db)
 ):
-    """Просмотр заказа по коду и телефону"""
-    order = ShopOrderService.get_order_by_code_and_phone(db, order_code, phone)
+    """Просмотр заказа по коду"""
+    from app.models import ShopOrder
+    order = db.query(ShopOrder).filter(ShopOrder.order_code == order_code).first()
     
     if not order:
         return templates.TemplateResponse("shop/order-not-found.html", {

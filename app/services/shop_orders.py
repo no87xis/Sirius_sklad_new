@@ -13,7 +13,7 @@ class ShopOrderService:
     
     @staticmethod
     def create_orders_from_cart(db: Session, order_data: ShopOrderCreate) -> List[ShopOrder]:
-        """Создаёт заказы из корзины (по одному заказу на каждый товар)"""
+        """Создаёт заказы из корзины (отдельный заказ для каждого товара)"""
         orders = []
         
         for cart_item in order_data.cart_items:
@@ -26,7 +26,7 @@ class ShopOrderService:
             order_code = OrderCodeService.generate_unique_order_code(db)
             order_code_last4 = OrderCodeService.get_last4_from_code(order_code)
             
-            # Вычисляем стоимость
+            # Вычисляем стоимость заказа
             unit_price = product.sell_price_rub or Decimal('0')
             total_amount = unit_price * cart_item['quantity']
             
@@ -39,8 +39,7 @@ class ShopOrderService:
                 if payment_method:
                     payment_method_name = payment_method.name
             
-            # Создаём заказ со статусом "Оформлен, не оплачен"
-            # НЕ резервируем товар - остатки остаются неизменными
+            # Создаём заказ
             order = ShopOrder(
                 order_code=order_code,
                 order_code_last4=order_code_last4,
@@ -54,8 +53,8 @@ class ShopOrderService:
                 total_amount=total_amount,
                 payment_method_id=order_data.payment_method_id,
                 payment_method_name=payment_method_name,
-                status=ShopOrderStatus.ORDERED_NOT_PAID,  # Новый статус
-                reserved_until=None,  # Убираем резервирование
+                status=ShopOrderStatus.ORDERED_NOT_PAID,
+                reserved_until=None,
                 expected_delivery_date=product.expected_date
             )
             

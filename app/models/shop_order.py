@@ -29,7 +29,7 @@ class ShopOrder(Base):
     customer_phone = Column(String(20), nullable=False, index=True)
     customer_city = Column(String(100), nullable=True)
     
-    # Информация о товаре
+    # Информация о заказе
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
     product_name = Column(String(200), nullable=False)
     quantity = Column(Integer, nullable=False)

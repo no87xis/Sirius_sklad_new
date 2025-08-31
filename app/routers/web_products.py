@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional, List
+from datetime import datetime
 from ..db import get_db
 from ..services.auth import get_current_user_optional
 from ..services.products import (
@@ -54,6 +55,8 @@ async def create_product_post(
     sell_price_rub: Optional[str] = Form(None),
     supplier_name: Optional[str] = Form(None),
     initial_quantity: int = Form(0),
+    availability_status: Optional[str] = Form(None),
+    expected_date: Optional[str] = Form(None),
     photos: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user = Depends(require_admin_or_manager())
@@ -75,8 +78,25 @@ async def create_product_post(
             initial_quantity=initial_quantity
         )
         
+        # Получаем дополнительные поля
+        availability_status = availability_status
+        expected_date_str = expected_date
+        
+        # Преобразуем дату если указана
+        expected_date_obj = None
+        if expected_date_str:
+            try:
+                expected_date_obj = datetime.strptime(expected_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+        
         # Создаем товар
-        product = ProductService.create_product(db, product_data)
+        product = ProductService.create_product(
+            db, 
+            product_data, 
+            availability_status=availability_status,
+            expected_date=expected_date
+        )
         
         # Обрабатываем загруженное фото
         if photos and product and photos.filename:

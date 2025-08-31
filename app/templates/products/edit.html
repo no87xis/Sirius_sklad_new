@@ -87,9 +87,9 @@
                                 </label>
                                 <select name="availability_status" id="availability_status"
                                         class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
-                                    <option value="IN_STOCK" {% if product.availability_status == 'IN_STOCK' %}selected{% endif %}>В наличии</option>
-                                    <option value="OUT_OF_STOCK" {% if product.availability_status == 'OUT_OF_STOCK' %}selected{% endif %}>Нет в наличии</option>
-                                    <option value="ON_ORDER" {% if product.availability_status == 'ON_ORDER' %}selected{% endif %}>Под заказ</option>
+                                    <option value="В_наличии" {% if product.availability_status == 'В_наличии' %}selected{% endif %}>В наличии</option>
+                                    <option value="В_пути" {% if product.availability_status == 'В_пути' %}selected{% endif %}>В пути</option>
+                                    <option value="Под_заказ" {% if product.availability_status == 'Под_заказ' %}selected{% endif %}>Под заказ</option>
                                 </select>
                                 <p class="mt-1 text-xs text-gray-500">Статус для отображения в магазине</p>
                             </div>
@@ -276,5 +276,27 @@ function deletePhoto(photoId) {
         });
     }
 }
+
+// Управление статусом и датой поставки
+document.addEventListener('DOMContentLoaded', function() {
+    const availabilityStatus = document.getElementById('availability_status');
+    const expectedDate = document.getElementById('expected_date');
+    
+    if (availabilityStatus && expectedDate) {
+        availabilityStatus.addEventListener('change', function() {
+            if (this.value === 'В_наличии') {
+                expectedDate.value = '';
+                expectedDate.disabled = true;
+            } else {
+                expectedDate.disabled = false;
+            }
+        });
+        
+        // Инициализация при загрузке
+        if (availabilityStatus.value === 'В_наличии') {
+            expectedDate.disabled = true;
+        }
+    }
+});
 </script>
 {% endblock %}

@@ -13,7 +13,7 @@ class ProductService:
 
 
     @staticmethod
-    def create_product(db: Session, product: ProductCreate) -> Product:
+    def create_product(db: Session, product: ProductCreate, availability_status: str = None, expected_date = None) -> Product:
         db_product = Product(
             name=product.name,
             description=product.description,
@@ -22,7 +22,9 @@ class ProductService:
             buy_price_eur=product.buy_price_eur,
             sell_price_rub=product.sell_price_rub,
             supplier_name=product.supplier_name,
-            quantity=product.initial_quantity
+            quantity=product.initial_quantity,
+            availability_status=availability_status,
+            expected_date=expected_date
         )
         db.add(db_product)
         db.commit()

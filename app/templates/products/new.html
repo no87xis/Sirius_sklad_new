@@ -158,6 +158,34 @@
                         </div>
                     </div>
 
+                    <!-- Статус и дата поставки -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Статус и поставка</h3>
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                                <label for="availability_status" class="block text-sm font-medium text-gray-700">
+                                    Статус товара
+                                </label>
+                                <select name="availability_status" id="availability_status" 
+                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
+                                    <option value="В_наличии">В наличии</option>
+                                    <option value="В_пути">В пути</option>
+                                    <option value="Под_заказ">Под заказ</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Текущий статус товара</p>
+                            </div>
+
+                            <div>
+                                <label for="expected_date" class="block text-sm font-medium text-gray-700">
+                                    Ожидаемая дата поставки
+                                </label>
+                                <input type="date" name="expected_date" id="expected_date"
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">Дата, когда товар должен прибыть на склад</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Кнопки действий -->
                     <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                         <a href="/products" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sirius-blue">
@@ -185,10 +213,26 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
     
+    // Управление статусом и датой поставки
+    const availabilityStatus = document.getElementById('availability_status');
+    const expectedDate = document.getElementById('expected_date');
+    
+    availabilityStatus.addEventListener('change', function() {
+        if (this.value === 'В_наличии') {
+            expectedDate.value = '';
+            expectedDate.disabled = true;
+        } else {
+            expectedDate.disabled = false;
+        }
+    });
+    
+    // Инициализация при загрузке
+    if (availabilityStatus.value === 'В_наличии') {
+        expectedDate.disabled = true;
+    }
+    
     fileInput.addEventListener('change', function(e) {
         const files = Array.from(e.target.files);
-        
-
         
         if (files.length === 0) {
             photoPreview.classList.add('hidden');

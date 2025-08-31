@@ -114,6 +114,13 @@ class ShopCartService:
             unit_price = product.sell_price_rub or Decimal('0')
             total_price = unit_price * cart_item.quantity
             
+            # Формируем URL для фото
+            main_photo_url = None
+            if main_photo and main_photo.file_path:
+                # Убираем 'app/static/' из пути если есть
+                photo_path = main_photo.file_path.replace('app/static/', '')
+                main_photo_url = f"/static/{photo_path}"
+            
             cart_item_response = ShopCartItemResponse(
                 id=cart_item.id,
                 product_id=cart_item.product_id,
@@ -126,7 +133,7 @@ class ShopCartService:
                 unit_price_rub=unit_price,
                 total_price=total_price,
                 available_stock=available_stock,
-                main_photo_url=f"/static/uploads/products/{main_photo.filename}" if main_photo else None
+                main_photo_url=main_photo_url
             )
             
             result.append(cart_item_response)

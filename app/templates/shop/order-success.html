@@ -62,8 +62,12 @@
                 
                 <div>
                     <p class="text-sm text-gray-600">
-                        <span class="font-medium">Ожидается оплата</span>
-                        <span class="text-gray-900">Товар не зарезервирован</span>
+                        <span class="font-medium">Код заказа:</span>
+                        <span class="font-mono text-lg text-blue-600 font-bold">{{ order.order_code }}</span>
+                    </p>
+                    <p class="text-sm text-red-600 font-medium">
+                        ⚠️ Очень важно сохранить и не терять этот код! 
+                        Только по нему вы сможете получить товар.
                     </p>
                     {% if order.expected_delivery_date %}
                     <p class="text-sm text-gray-600">
@@ -79,7 +83,7 @@
                 <p class="text-sm text-gray-600 mb-2">Ссылка для отслеживания заказа:</p>
                 <div class="flex items-center space-x-2">
                     <input type="text" 
-                           value="{{ request.base_url }}shop/order/{{ order.order_code }}?phone={{ order.customer_phone }}" 
+                           value="{{ request.base_url }}shop/order/{{ order.order_code }}" 
                            readonly
                            class="flex-1 border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-sm font-mono">
                     <button type="button" 
@@ -89,6 +93,9 @@
                         Копировать
                     </button>
                 </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    ⚠️ Скопируйте полную ссылку для отслеживания заказа
+                </p>
             </div>
         </div>
         {% endfor %}
@@ -107,7 +114,7 @@
     
     <!-- Кнопка WhatsApp -->
     <div class="mt-6 text-center">
-        <a href="https://wa.me/375293571197?text={{ generate_whatsapp_message(orders) | urlencode }}" 
+        <a href="https://wa.me/79993980159?text={{ generate_whatsapp_message(orders, request) | urlencode }}" 
            target="_blank"
            class="inline-flex items-center bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-md font-medium text-lg">
             <i class="fab fa-whatsapp mr-2"></i>
@@ -123,15 +130,11 @@
             <ul class="text-blue-700 space-y-2 text-sm">
                 <li class="flex items-start">
                     <i class="fas fa-phone text-blue-400 mt-1 mr-2"></i>
-                    <span>Менеджер свяжется с вами для подтверждения заказа</span>
+                    <span>Свяжитесь с менеджером для оплаты заказа</span>
                 </li>
                 <li class="flex items-start">
                     <i class="fas fa-credit-card text-blue-400 mt-1 mr-2"></i>
-                    <span>Оплата производится при получении товара</span>
-                </li>
-                <li class="flex items-start">
-                    <i class="fas fa-truck text-blue-400 mt-1 mr-2"></i>
-                    <span>Товары можно забрать на складе или заказать доставку</span>
+                    <span>После оплаты, товары можно забрать на складе или заказать доставку</span>
                 </li>
             </ul>
         </div>
@@ -145,7 +148,7 @@
         </a>
         <a href="/shop/search-order" class="text-blue-600 hover:text-blue-800 font-medium">
             <i class="fas fa-search mr-2"></i>
-            Найти заказ
+            Проверить свой заказ
         </a>
     </div>
 </div>
@@ -186,12 +189,15 @@ function copyAllOrders() {
             quantity: {{ order.quantity }},
             price: '{{ "%.2f"|format(order.total_amount) }} ₽',
             code: '{{ order.order_code }}',
-            link: '{{ request.base_url }}shop/order/{{ order.order_code }}?phone={{ order.customer_phone }}'
+            link: '{{ request.base_url }}shop/order/{{ order.order_code }}',
+            paymentMethodName: '{{ order.payment_method_name if order.payment_method_name else "" }}',
+            createdAt: '{{ order.created_at.isoformat() if order.created_at else "" }}',
+            paymentMethodId: {{ order.payment_method_id if order.payment_method_id else "null" }}
         }{% if not loop.last %},{% endif %}
         {% endfor %}
     ];
     
-    let text = '🛍️ Заказ в магазине Сириус\n\n';
+    let text = '🛍 Заказ в магазине SIRIUS_GROUPE\n\n';
     text += '📋 Детали заказа:\n';
     
     orders.forEach((order, index) => {
@@ -205,9 +211,42 @@ function copyAllOrders() {
     text += `💰 Итого: {{ "%.2f"|format(orders|sum(attribute='total_amount')) }} ₽\n`;
     text += `📱 Телефон: {{ orders[0].customer_phone if orders else '' }}\n`;
     text += `👤 Имя: {{ orders[0].customer_name if orders else '' }}\n`;
-    text += `🏙️ Город: {{ orders[0].customer_city if orders else '' }}\n\n`;
-    text += '⏰ Резерв на 48 часов\n';
-    text += '💳 Оплата при получении';
+    text += `🏙 Город: {{ orders[0].customer_city if orders and orders[0].customer_city and orders[0].customer_city != 'custom' else 'Не указан' }}\n\n`;
+    
+    // Добавляем информацию о способе оплаты
+    const firstOrder = orders[0];
+    if (firstOrder && firstOrder.createdAt) {
+        const createdDate = new Date(firstOrder.createdAt);
+        const reserveUntil = new Date(createdDate.getTime() + 48 * 60 * 60 * 1000); // +48 часов
+        
+        const reserveDate = reserveUntil.toLocaleString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+        text += `⏰ Резерв до ${reserveDate}\n`;
+    } else {
+        const now = new Date();
+        const reserveUntil = new Date(now.getTime() + 48 * 60 * 60 * 1000); // +48 часов
+        
+        const reserveDate = reserveUntil.toLocaleString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+        text += `⏰ Резерв до ${reserveDate}\n`;
+    }
+    
+    // Отображаем способ оплаты
+    if (firstOrder && firstOrder.paymentMethodName && firstOrder.paymentMethodName.trim() !== '') {
+        text += `💳 Способ оплаты: ${firstOrder.paymentMethodName}`;
+    } else {
+        text += '💳 Способ оплаты: не указан';
+    }
     
     // Копируем в буфер обмена
     navigator.clipboard.writeText(text).then(() => {

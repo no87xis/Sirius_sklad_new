@@ -6,6 +6,10 @@
     <meta name="robots" content="noindex, nofollow">
     <title>{% block title %}Магазин Сириус{% endblock %}</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -39,23 +43,31 @@
             <div class="flex justify-between items-center h-16">
                 <!-- Логотип -->
                 <div class="flex items-center">
-                    <a href="/shop" class="text-2xl font-bold text-blue-600">
-                        🛍️ Sirius Group
+                    <a href="/shop" class="flex items-center space-x-3 group">
+                        <div class="relative">
+                            <img src="/static/logo.svg" alt="Sirius Group" class="h-10 w-auto transition-transform duration-300 group-hover:scale-110">
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                SIRIUS
+                            </span>
+                            <span class="text-sm font-medium text-gray-600 tracking-wider">
+                                GROUP
+                            </span>
+                        </div>
                     </a>
                 </div>
                 
-                <!-- Навигация -->
-                <nav class="hidden md:flex space-x-8">
-                    <a href="/shop/search-order" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                        Проверить свой заказ
-                    </a>
-                </nav>
-                
-                <!-- Корзина -->
+                <!-- Корзина и проверка заказа -->
                 <div class="flex items-center space-x-4">
-                    <a href="/shop/cart" class="relative text-gray-700 hover:text-blue-600 flex items-center space-x-2">
+                    <a href="/shop/search-order" class="text-gray-700 hover:text-blue-600 flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 transition-colors duration-200">
+                        <i class="fas fa-search text-lg"></i>
+                        <span class="hidden sm:inline">Проверить заказ</span>
+                    </a>
+                    
+                    <a href="/shop/cart" class="relative text-gray-700 hover:text-blue-600 flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 transition-colors duration-200">
                         <i class="fas fa-shopping-cart text-xl"></i>
-                        <span class="text-sm font-medium">Корзина</span>
+                        <span class="hidden sm:inline">Корзина</span>
                         {% if cart_count and cart_count > 0 %}
                         <span class="cart-badge absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                             {{ cart_count }}
