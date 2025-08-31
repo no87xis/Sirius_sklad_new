@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Numeric, DateTime, Date
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from ..db import Base
+from ..constants import DEFAULT_STATUS
 
 
 class Product(Base):
@@ -20,7 +21,7 @@ class Product(Base):
     supplier_name = Column(String, nullable=True)  # поставщик
     
     # Новые поля для статуса товара
-    availability_status = Column(String(20), default='IN_STOCK', nullable=True, index=True)
+    availability_status = Column(String(20), default=DEFAULT_STATUS, nullable=False, index=True)
     expected_date = Column(Date, nullable=True)  # дата ожидаемого поступления
     
     # Метаданные

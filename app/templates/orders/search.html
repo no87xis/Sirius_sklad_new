@@ -5,11 +5,16 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">
-        <div class="flex items-center mb-6">
-            <a href="/orders" class="text-blue-600 hover:text-blue-800 mr-4">
-                ← Назад к заказам
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center">
+                <a href="/orders" class="text-blue-600 hover:text-blue-800 mr-4">
+                    ← Назад к заказам
+                </a>
+                <h1 class="text-3xl font-bold text-gray-900">Поиск заказов</h1>
+            </div>
+            <a href="/qr-scanner" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+                📷 QR-сканер
             </a>
-            <h1 class="text-3xl font-bold text-gray-900">Поиск заказов</h1>
         </div>
 
         <!-- Форма поиска -->

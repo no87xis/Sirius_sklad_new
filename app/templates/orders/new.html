@@ -5,11 +5,16 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto">
-        <div class="flex items-center mb-6">
-            <a href="/orders" class="text-blue-600 hover:text-blue-800 mr-4">
-                ← Назад к заказам
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center">
+                <a href="/orders" class="text-blue-600 hover:text-blue-800 mr-4">
+                    ← Назад к заказам
+                </a>
+                <h1 class="text-3xl font-bold text-gray-900">Новый заказ</h1>
+            </div>
+            <a href="/qr-scanner" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+                📷 QR-сканер
             </a>
-            <h1 class="text-3xl font-bold text-gray-900">Новый заказ</h1>
         </div>
 
         {% include "_flash.html" %}
@@ -40,13 +45,14 @@
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Информация о клиенте</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                  <div>
-                             <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
-                                 Номер телефона
-                             </label>
-                             <input type="tel" name="phone" id="phone"
-                                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="+7 (999) 123-45-67" value="+7">
-                         </div>
+                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
+                                Номер телефона
+                            </label>
+                            <input type="tel" name="phone" id="phone"
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="+7 (999) 123-45-67" value="+7">
+                            <p class="text-sm text-gray-500 mt-1">Формат: +7 (XXX) XXX-XX-XX</p>
+                        </div>
                         <div>
                             <label for="customer_name" class="block text-sm font-medium text-gray-700 mb-1">
                                 Имя клиента
@@ -328,6 +334,43 @@ document.addEventListener('DOMContentLoaded', function() {
             cityCustomInput.value = '';
         }
     });
+    
+    // Маска для телефона
+    const phoneInput = document.getElementById('phone');
+    
+    phoneInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        // Убираем +7 из начала если есть
+        if (value.startsWith('7')) {
+            value = value.substring(1);
+        }
+        
+        // Ограничиваем длину
+        if (value.length > 10) {
+            value = value.substring(0, 10);
+        }
+        
+        // Форматируем номер
+        let formatted = '+7';
+        if (value.length > 0) {
+            formatted += ' (' + value.substring(0, 3);
+            if (value.length > 3) {
+                formatted += ') ' + value.substring(3, 6);
+                if (value.length > 6) {
+                    formatted += '-' + value.substring(6, 8);
+                    if (value.length > 8) {
+                        formatted += '-' + value.substring(8, 10);
+                    }
+                }
+            }
+        }
+        
+        e.target.value = formatted;
+    });
+    
+    // Устанавливаем начальное значение
+    phoneInput.value = '+7';
     
     // Обработка способа оплаты (старый код для совместимости)
     const paymentMethodSelect = document.getElementById('payment_method');

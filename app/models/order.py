@@ -48,6 +48,14 @@ class Order(Base):
     issued_at = Column(DateTime(timezone=True), nullable=True)
     user_id = Column(String, ForeignKey("users.username"), nullable=False)
     
+    # Источник заказа (manual - ручной, shop - из магазина)
+    source = Column(String(20), nullable=True, default="manual")
+    
+    # QR-код поля
+    qr_payload = Column(String, nullable=True, index=True)  # Уникальный токен для QR-кода
+    qr_image_path = Column(String, nullable=True)  # Путь к изображению QR-кода
+    qr_generated_at = Column(DateTime(timezone=True), nullable=True)  # Когда сгенерирован QR-код
+    
     # Связи
     product = relationship("Product", back_populates="orders")
     user = relationship("User", back_populates="orders")
@@ -56,3 +64,8 @@ class Order(Base):
     payment_method_rel = relationship("PaymentMethod", back_populates="orders")
     payment_instrument_rel = relationship("PaymentInstrument", back_populates="orders")
     cash_flows = relationship("CashFlow", back_populates="order")
+    
+    @property
+    def has_qr(self) -> bool:
+        """Проверяет, есть ли QR-код у заказа"""
+        return bool(self.qr_payload and self.qr_image_path)

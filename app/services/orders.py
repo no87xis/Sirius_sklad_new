@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
-from ..models import Order, Product, OrderStatus, PaymentMethod
+from ..models import Order, Product, OrderStatus, PaymentMethodEnum
 from ..schemas.order import OrderCreate, OrderUpdate, OrderStatusUpdate
 from ..services.products import calculate_stock
 from fastapi import HTTPException, status
@@ -20,6 +20,9 @@ def get_orders(db: Session, skip: int = 0, limit: int = 100, status_filter: Opti
         except ValueError:
             # Если статус неверный, возвращаем пустой список
             return []
+    
+    # Сортируем по дате создания (новые сначала)
+    query = query.order_by(Order.created_at.desc())
     
     orders = query.offset(skip).limit(limit).all()
     
@@ -75,7 +78,8 @@ def create_order(db: Session, order_data: OrderCreate, user_id: str) -> Order:
         payment_method_id=order_data.payment_method_id,
         payment_instrument_id=order_data.payment_instrument_id,
         paid_amount=order_data.paid_amount,
-        paid_at=order_data.paid_at
+        paid_at=order_data.paid_at,
+        source=order_data.source or "manual"
     )
     
     db.add(order)
@@ -142,11 +146,35 @@ def update_order_status(db: Session, order_id: int, status_data: OrderStatusUpda
     
     # Если заказ выдается, устанавливаем время выдачи
     if new_status == OrderStatus.PAID_ISSUED and old_status != OrderStatus.PAID_ISSUED:
-        order.issued_at = datetime.utcnow()
+        order.issued_at = datetime.now(timezone.utc)
     
     # Если заказ отменяется, сбрасываем время выдачи
     if new_status == OrderStatus.PAID_DENIED and old_status == OrderStatus.PAID_ISSUED:
         order.issued_at = None
+    
+    # ЛОГИКА УМЕНЬШЕНИЯ ОСТАТКОВ:
+    # Уменьшаем остаток только при переходе на статус "оплачен" или "выдан"
+    # и только для заказов из магазина (source="shop")
+    if (order.source == "shop" and 
+        old_status in [OrderStatus.PAID_NOT_ISSUED, OrderStatus.UNPAID] and
+        new_status in [OrderStatus.PAID_NOT_ISSUED, OrderStatus.PAID_ISSUED]):
+        
+        # Получаем товар
+        product = db.query(Product).filter(Product.id == order.product_id).first()
+        if product:
+            # Уменьшаем остаток
+            product.quantity = max(0, product.quantity - order.qty)
+    
+    # Если заказ отменяется или переводится в "не оплачен", возвращаем остаток
+    if (order.source == "shop" and 
+        old_status in [OrderStatus.PAID_NOT_ISSUED, OrderStatus.PAID_ISSUED] and
+        new_status in [OrderStatus.UNPAID, OrderStatus.PAID_DENIED]):
+        
+        # Получаем товар
+        product = db.query(Product).filter(Product.id == order.product_id).first()
+        if product:
+            # Возвращаем остаток
+            product.quantity += order.qty
     
     db.commit()
     db.refresh(order)

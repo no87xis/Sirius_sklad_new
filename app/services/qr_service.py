@@ -4,7 +4,7 @@ import string
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 from sqlalchemy.orm import Session
-from ..models import ShopOrder
+from ..models import ShopOrder, Order
 import os
 from pathlib import Path
 
@@ -30,7 +30,7 @@ class QRService:
         return ''.join(secrets.choice(cls.TOKEN_ALPHABET) for _ in range(cls.TOKEN_LENGTH))
     
     @classmethod
-    def generate_qr_payload(cls, order: ShopOrder) -> str:
+    def generate_qr_payload(cls, order) -> str:
         """Генерирует содержимое для QR-кода (публичный токен)"""
         # Используем формат /o/<token> для публичного доступа
         return f"/o/{order.qr_payload}"
@@ -41,7 +41,7 @@ class QRService:
         Path(cls.QR_STORAGE_PATH).mkdir(parents=True, exist_ok=True)
     
     @classmethod
-    def generate_qr_image(cls, order: ShopOrder) -> str:
+    def generate_qr_image(cls, order) -> str:
         """Генерирует QR-изображение и возвращает путь к файлу"""
         if not order.qr_payload:
             raise ValueError("Order must have qr_payload before generating QR image")
@@ -79,7 +79,7 @@ class QRService:
         Path(cls.QR_STORAGE_PATH).mkdir(parents=True, exist_ok=True)
     
     @classmethod
-    def generate_qr_for_order(cls, db: Session, order: ShopOrder) -> bool:
+    def generate_qr_for_order(cls, db: Session, order) -> bool:
         """Генерирует QR-код для заказа если его ещё нет"""
         try:
             # Если QR уже есть, не генерируем заново
@@ -106,8 +106,14 @@ class QRService:
             return False
     
     @classmethod
-    def get_order_by_qr_token(cls, db: Session, token: str) -> Optional[ShopOrder]:
+    def get_order_by_qr_token(cls, db: Session, token: str) -> Optional[Order]:
         """Получает заказ по QR-токену"""
+        # Сначала ищем в основной таблице Order
+        order = db.query(Order).filter(Order.qr_payload == token).first()
+        if order:
+            return order
+        
+        # Если не найден, ищем в ShopOrder (для совместимости)
         return db.query(ShopOrder).filter(ShopOrder.qr_payload == token).first()
     
     @classmethod
@@ -120,7 +126,7 @@ class QRService:
         return all(c in cls.TOKEN_ALPHABET for c in token)
     
     @classmethod
-    def revoke_qr_token(cls, db: Session, order: ShopOrder) -> bool:
+    def revoke_qr_token(cls, db: Session, order) -> bool:
         """Отзывает QR-токен заказа (при отмене)"""
         try:
             # Удаляем файл изображения если он есть
@@ -145,7 +151,7 @@ class QRService:
             return False
     
     @classmethod
-    def get_qr_image_url(cls, order: ShopOrder) -> Optional[str]:
+    def get_qr_image_url(cls, order) -> Optional[str]:
         """Возвращает URL для доступа к QR-изображению"""
         if not order.qr_image_path:
             return None
@@ -153,7 +159,7 @@ class QRService:
         return f"/static/{order.qr_image_path}"
     
     @classmethod
-    def get_qr_public_url(cls, order: ShopOrder) -> Optional[str]:
+    def get_qr_public_url(cls, order) -> Optional[str]:
         """Возвращает публичный URL для доступа к заказу по QR"""
         if not order.qr_payload:
             return None

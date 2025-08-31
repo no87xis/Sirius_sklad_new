@@ -35,6 +35,7 @@ class ShopCartItemResponse(ShopCartResponse):
     total_price: Optional[Decimal]
     available_stock: int
     main_photo_url: Optional[str] = None
+    stock_status: str  # Статус товара: "В наличии", "Под заказ", "В пути"
     
     class Config:
         from_attributes = True

@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from decimal import Decimal
 from datetime import datetime
+from ..constants import ProductStatus, DEFAULT_STATUS
 
 
 class ProductBase(BaseModel):
@@ -16,6 +17,8 @@ class ProductBase(BaseModel):
 
 class ProductCreate(ProductBase):
     initial_quantity: int = Field(0, ge=0)
+    availability_status: str = Field(DEFAULT_STATUS, max_length=20)
+    expected_date: Optional[datetime] = None
 
 
 class ProductUpdate(BaseModel):

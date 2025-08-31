@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Метрики производительности - Сириус{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100">
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 class="text-2xl font-semibold text-gray-900">Метрики производительности</h1>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-4">
+                <div class="flex space-x-4 mb-6">
+                    <button onclick="refreshMetrics()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Обновить
+                    </button>
+                    <button onclick="resetMetrics()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                        Сбросить метрики
+                    </button>
+                </div>
+
+                <!-- Основные метрики -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Время работы</dt>
+                                        <dd id="uptime" class="text-lg font-medium text-gray-900">-</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Запросов (час)</dt>
+                                        <dd id="requests-hour" class="text-lg font-medium text-gray-900">-</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Среднее время ответа</dt>
+                                        <dd id="avg-response" class="text-lg font-medium text-gray-900">-</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Ошибок</dt>
+                                        <dd id="total-errors" class="text-lg font-medium text-gray-900">-</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Системные ресурсы -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Использование памяти</h3>
+                            <div class="relative pt-1">
+                                <div class="flex mb-2 items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
+                                            Память
+                                        </span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span id="memory-percent" class="text-xs font-semibold inline-block text-blue-600">0%</span>
+                                    </div>
+                                </div>
+                                <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
+                                    <div id="memory-bar" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"></div>
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    Использовано: <span id="memory-used">-</span> GB
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Использование CPU</h3>
+                            <div class="relative pt-1">
+                                <div class="flex mb-2 items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">
+                                            CPU
+                                        </span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span id="cpu-percent" class="text-xs font-semibold inline-block text-green-600">0%</span>
+                                    </div>
+                                </div>
+                                <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-green-200">
+                                    <div id="cpu-bar" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"></div>
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    Текущая нагрузка
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Детальная информация -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Детальная информация</h3>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500">Подробные метрики производительности</p>
+                    </div>
+                    <div class="border-t border-gray-200">
+                        <dl id="detailed-metrics">
+                            <!-- Здесь будет загружена детальная информация -->
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function refreshMetrics() {
+    try {
+        const response = await fetch('/api/metrics/performance');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            updateMetricsDisplay(data.data);
+        } else {
+            console.error('Ошибка загрузки метрик:', data.message);
+        }
+    } catch (error) {
+        console.error('Ошибка при загрузке метрик:', error);
+    }
+}
+
+function updateMetricsDisplay(metrics) {
+    // Основные метрики
+    document.getElementById('uptime').textContent = metrics.uptime;
+    document.getElementById('requests-hour').textContent = metrics.requests.total_last_hour;
+    document.getElementById('avg-response').textContent = metrics.requests.avg_response_time + 's';
+    document.getElementById('total-errors').textContent = metrics.errors.total;
+    
+    // Системные ресурсы
+    document.getElementById('memory-percent').textContent = metrics.system.memory_percent + '%';
+    document.getElementById('memory-bar').style.width = metrics.system.memory_percent + '%';
+    document.getElementById('memory-used').textContent = metrics.system.memory_used_gb;
+    
+    document.getElementById('cpu-percent').textContent = metrics.system.cpu_percent + '%';
+    document.getElementById('cpu-bar').style.width = metrics.system.cpu_percent + '%';
+    
+    // Детальная информация
+    const detailedMetrics = document.getElementById('detailed-metrics');
+    detailedMetrics.innerHTML = `
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Время последнего обновления</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">${new Date(metrics.timestamp).toLocaleString()}</dd>
+        </div>
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Максимальное время ответа</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">${metrics.requests.max_response_time}s</dd>
+        </div>
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Минимальное время ответа</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">${metrics.requests.min_response_time}s</dd>
+        </div>
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Запросов к БД (час)</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">${metrics.database.queries_last_hour}</dd>
+        </div>
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Среднее время запроса к БД</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">${metrics.database.avg_query_time}s</dd>
+        </div>
+    `;
+}
+
+async function resetMetrics() {
+    if (confirm('Вы уверены, что хотите сбросить все метрики?')) {
+        try {
+            const response = await fetch('/api/metrics/reset', { method: 'POST' });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                alert('Метрики сброшены');
+                refreshMetrics();
+            } else {
+                alert('Ошибка при сбросе метрик: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Ошибка при сбросе метрик:', error);
+            alert('Ошибка при сбросе метрик');
+        }
+    }
+}
+
+// Автоматическое обновление каждые 30 секунд
+setInterval(refreshMetrics, 30000);
+
+// Загружаем метрики при загрузке страницы
+document.addEventListener('DOMContentLoaded', refreshMetrics);
+</script>
+{% endblock %}

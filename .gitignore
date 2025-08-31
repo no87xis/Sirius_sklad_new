@@ -21,17 +21,12 @@ wheels/
 *.egg
 MANIFEST
 
-# Virtual environments
+# Virtual Environment
 venv/
 env/
 ENV/
-.venv/
-.env
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/
@@ -40,23 +35,35 @@ ENV/
 *.swo
 *~
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
 # Environment variables
 .env
 .env.local
 .env.production
 
-# Alembic
-alembic/versions/*.py
-!alembic/versions/__init__.py
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
-# Testing
-.coverage
-.pytest_cache/
-htmlcov/
+# Logs
+*.log
+logs/
+
+# Uploads
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Test files
+test_*.py
+debug_*.py
+*.test.py

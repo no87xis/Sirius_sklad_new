@@ -15,7 +15,7 @@ from ..services.order_code import OrderCodeService
 from ..services.payments import PaymentService
 from ..schemas.order import OrderCreate, OrderUpdate, OrderStatusUpdate
 from ..deps import require_admin_or_manager
-from ..models import OrderStatus, PaymentMethod, PaymentMethodModel
+from ..models import OrderStatus, PaymentMethodEnum, PaymentMethodModel
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -78,7 +78,7 @@ async def new_order_page(
             "products": products,
             "last_eur_rate": last_eur_rate,
             "payment_methods": payment_methods,
-            "old_payment_methods": PaymentMethod  # Для совместимости
+            "old_payment_methods": PaymentMethodEnum  # Для совместимости
         }
     )
 
@@ -96,12 +96,9 @@ async def create_order_post(
     payment_method: str = Form(...),
     payment_note: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ):
     """Создание нового заказа"""
-    if not current_user:
-        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    
     try:
         from decimal import Decimal
         
@@ -121,9 +118,10 @@ async def create_order_post(
             qty=qty,
             unit_price_rub=Decimal(unit_price_rub),
             eur_rate=Decimal(eur_rate),
-            payment_method=PaymentMethod(payment_method),
+            payment_method=PaymentMethodEnum(payment_method),
             payment_note=payment_note,
-            order_code=order_code  # Передаем сгенерированный код
+            order_code=order_code,  # Передаем сгенерированный код
+            source="manual"  # Указываем источник
         )
         create_order(db, order_data, current_user.username)
         return RedirectResponse(url="/orders?success=Заказ успешно создан", status_code=status.HTTP_302_FOUND)
@@ -169,7 +167,7 @@ async def edit_order_page(
             "current_user": current_user, 
             "order": order, 
             "products": products,
-            "payment_methods": PaymentMethod
+            "payment_methods": PaymentMethodEnum
         }
     )
 
@@ -200,7 +198,7 @@ async def update_order_post(
             qty=qty,
             unit_price_rub=Decimal(str(unit_price_rub)) if unit_price_rub else None,
             eur_rate=Decimal(str(eur_rate)) if eur_rate else None,
-            payment_method=PaymentMethod(payment_method) if payment_method else None,
+            payment_method=PaymentMethodEnum(payment_method) if payment_method else None,
             payment_note=payment_note
         )
         update_order(db, order_id, order_data)

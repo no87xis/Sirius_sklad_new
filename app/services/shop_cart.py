@@ -129,6 +129,14 @@ class ShopCartService:
             # Вычисляем доступный остаток (исключая резервы)
             available_stock = product.quantity
             
+            # Определяем статус товара
+            if available_stock > 0:
+                stock_status = "В наличии"
+            elif product.expected_date:
+                stock_status = f"Под заказ ({product.expected_date.strftime('%d.%m.%Y')})"
+            else:
+                stock_status = "В пути"
+            
             # Вычисляем общую стоимость
             unit_price = product.sell_price_rub or Decimal('0')
             total_price = unit_price * cart_item.quantity
@@ -152,7 +160,8 @@ class ShopCartService:
                 unit_price_rub=unit_price,
                 total_price=total_price,
                 available_stock=available_stock,
-                main_photo_url=main_photo_url
+                main_photo_url=main_photo_url,
+                stock_status=stock_status  # Добавляем статус товара
             )
             
             result.append(cart_item_response)

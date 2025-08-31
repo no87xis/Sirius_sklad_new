@@ -37,6 +37,18 @@ async def admin_dashboard(
         }
     )
 
+@router.get("/admin/metrics", response_class=HTMLResponse)
+async def admin_metrics(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_admin())
+):
+    """Страница метрик производительности"""
+    return templates.TemplateResponse(
+        "admin/metrics.html",
+        {"request": request, "current_user": current_user}
+    )
+
 @router.get("/admin/users", response_class=HTMLResponse)
 async def users_page(
     request: Request,

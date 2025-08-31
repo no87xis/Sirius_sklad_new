@@ -41,34 +41,38 @@
 
         <!-- Информация о товаре -->
         <div class="space-y-6">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ product.name }}</h1>
-                
-                <!-- Статус наличия -->
-                <div class="mb-4">
-                    {% if product.quantity > 0 %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        В наличии
-                    </span>
-                    {% else %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                        <i class="fas fa-times-circle mr-2"></i>
-                        Нет в наличии
-                    </span>
-                    {% endif %}
-                </div>
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ product.name }}</h1>
+                    
+                    <!-- Статус наличия -->
+                    <div class="mb-4">
+                        {% if product.quantity > 0 %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            В наличии
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            <i class="fas fa-times-circle mr-2"></i>
+                            Нет в наличии
+                        </span>
+                        {% endif %}
+                    </div>
 
-                <!-- Цена -->
-                <div class="mb-6">
-                    {% if product.sell_price_rub %}
-                    <p class="text-4xl font-bold text-blue-600">
-                        {{ "%.2f"|format(product.sell_price_rub) }} ₽
-                    </p>
-                    {% else %}
-                    <p class="text-2xl text-gray-500">Цена по запросу</p>
-                    {% endif %}
+                    <!-- Цена -->
+                    <div class="mb-6">
+                        {% if product.sell_price_rub %}
+                        <p class="text-4xl font-bold text-blue-600">
+                            {{ "%.2f"|format(product.sell_price_rub) }} ₽
+                        </p>
+                        {% else %}
+                        <p class="text-2xl text-gray-500">Цена по запросу</p>
+                        {% endif %}
+                    </div>
                 </div>
+                
+                <!-- Убрали QR-сканер -->
             </div>
 
             <!-- Подробное описание -->
@@ -82,7 +86,6 @@
             <!-- Краткое описание -->
             {% if product.description %}
             <div class="border-t pt-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3">Краткая информация</h3>
                 <p class="text-gray-700">{{ product.description }}</p>
             </div>
             {% endif %}

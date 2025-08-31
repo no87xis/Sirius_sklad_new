@@ -27,6 +27,8 @@
         <div class="bg-white shadow sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <form method="POST" action="/products/{{ product.id }}" class="space-y-6" enctype="multipart/form-data">
+
+                    
                     <!-- Основная информация -->
                     <div>
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Основная информация</h3>
@@ -86,10 +88,12 @@
                                     Статус наличия
                                 </label>
                                 <select name="availability_status" id="availability_status"
-                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
-                                    <option value="В_наличии" {% if product.availability_status == 'В_наличии' %}selected{% endif %}>В наличии</option>
-                                    <option value="В_пути" {% if product.availability_status == 'В_пути' %}selected{% endif %}>В пути</option>
-                                    <option value="Под_заказ" {% if product.availability_status == 'Под_заказ' %}selected{% endif %}>Под заказ</option>
+                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm"
+                                        required>
+                                     <option value="IN_STOCK" {% if product.availability_status == 'IN_STOCK' %}selected{% endif %}>В наличии</option>
+                                     <option value="IN_TRANSIT" {% if product.availability_status == 'IN_TRANSIT' %}selected{% endif %}>В пути</option>
+                                     <option value="ON_ORDER" {% if product.availability_status == 'ON_ORDER' %}selected{% endif %}>Под заказ</option>
+                                     <option value="OUT_OF_STOCK" {% if product.availability_status == 'OUT_OF_STOCK' %}selected{% endif %}>Нет в наличии</option>
                                 </select>
                                 <p class="mt-1 text-xs text-gray-500">Статус для отображения в магазине</p>
                             </div>
@@ -277,6 +281,14 @@ function deletePhoto(photoId) {
     }
 }
 
+// Функция для отправки формы
+function submitForm() {
+    const form = document.querySelector('form');
+    if (form) {
+        form.submit();
+    }
+}
+
 // Управление статусом и датой поставки
 document.addEventListener('DOMContentLoaded', function() {
     const availabilityStatus = document.getElementById('availability_status');
@@ -284,16 +296,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (availabilityStatus && expectedDate) {
         availabilityStatus.addEventListener('change', function() {
-            if (this.value === 'В_наличии') {
+            if (this.value === 'IN_STOCK') {
                 expectedDate.value = '';
                 expectedDate.disabled = true;
             } else {
                 expectedDate.disabled = false;
             }
+            
+
         });
         
         // Инициализация при загрузке
-        if (availabilityStatus.value === 'В_наличии') {
+        if (availabilityStatus.value === 'IN_STOCK') {
             expectedDate.disabled = true;
         }
     }

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import uuid
 from app.db import get_db
+from app.models import PaymentMethodModel
 from app.services.products import get_products
 from app.services.shop_cart import ShopCartService
 from app.services.shop_orders import ShopOrderService
@@ -36,10 +37,6 @@ async def shop_catalog(
 ):
     """Каталог товаров магазина"""
     products = get_products(db)
-    
-    # Debug: проверяем фотографии
-    for product in products:
-        print(f"DEBUG: Товар {product.id} '{product.name}' - фото: {len(product.photos)}, главное: {product.main_photo is not None}")
     
     # Получаем количество товаров в корзине
     session_id = get_session_id(request)
@@ -84,6 +81,11 @@ async def shop_cart(
     """Корзина магазина"""
     session_id = get_session_id(request)
     cart_summary = ShopCartService.get_cart_summary(db, session_id)
+    
+    print(f"DEBUG: Cart route - session_id: {session_id}")
+    print(f"DEBUG: Cart route - cart_summary: {cart_summary}")
+    print(f"DEBUG: Cart route - cart_summary.items: {cart_summary.items if cart_summary else 'None'}")
+    print(f"DEBUG: Cart route - cart_summary.total_items: {cart_summary.total_items if cart_summary else 'None'}")
     
     return templates.TemplateResponse("shop/cart.html", {
         "request": request,
@@ -130,6 +132,35 @@ async def remove_from_cart_post(
         return RedirectResponse(url=f"/shop/cart?error={str(e)}", status_code=303)
 
 
+@router.post("/cart/update")
+async def update_cart_item_post(
+    request: Request,
+    product_id: int = Form(...),
+    quantity: int = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Обновляет количество товара в корзине (POST)"""
+    session_id = get_session_id(request)
+    
+    try:
+        if quantity <= 0:
+            # Удаляем товар из корзины
+            success = ShopCartService.remove_from_cart(db, session_id, product_id)
+            if success:
+                return RedirectResponse(url="/shop/cart?success=Товар удалён из корзины", status_code=303)
+            else:
+                return RedirectResponse(url="/shop/cart?error=Товар не найден в корзине", status_code=303)
+        
+        # Обновляем количество
+        cart_item = ShopCartService.update_cart_item(db, session_id, product_id, quantity)
+        if not cart_item:
+            return RedirectResponse(url="/shop/cart?error=Товар не найден в корзине", status_code=303)
+        
+        return RedirectResponse(url="/shop/cart?success=Количество обновлено", status_code=303)
+    except Exception as e:
+        return RedirectResponse(url=f"/shop/cart?error={str(e)}", status_code=303)
+
+
 @router.get("/checkout", response_class=HTMLResponse)
 async def shop_checkout(
     request: Request,
@@ -143,8 +174,7 @@ async def shop_checkout(
         return RedirectResponse(url="/shop/cart", status_code=303)
     
     # Получаем способы оплаты
-    from app.models import PaymentMethod
-    payment_methods = db.query(PaymentMethod).all()
+    payment_methods = db.query(PaymentMethodModel).all()
     
     return templates.TemplateResponse("shop/checkout.html", {
         "request": request,
@@ -216,8 +246,8 @@ def generate_whatsapp_message(orders, request, db=None):
     
     for i, order in enumerate(orders, 1):
         message_parts.append(f"{i}. {order.product_name or 'Товар'}")
-        message_parts.append(f"   Количество: {order.quantity}")
-        message_parts.append(f"   Стоимость: {order.total_amount} ₽")
+        message_parts.append(f"   Количество: {order.qty}")
+        message_parts.append(f"   Стоимость: {order.unit_price_rub * order.qty} ₽")
         message_parts.append(f"   Код заказа: {order.order_code}")
         
         # Добавляем ссылку на QR-страницу если есть
@@ -226,16 +256,16 @@ def generate_whatsapp_message(orders, request, db=None):
             if qr_url:
                 message_parts.append(f"   QR-ссылка: {request.base_url}{qr_url}")
         
-        message_parts.append(f"   Ссылка: {request.base_url}shop/order/{order.order_code}")
+        message_parts.append(f"   Ссылка: {request.base_url}orders/{order.order_code}")
         message_parts.append("")
     
-    total_amount = sum(order.total_amount for order in orders)
+    total_amount = sum(order.unit_price_rub * order.qty for order in orders)
     message_parts.append(f"💰 Итого: {total_amount} ₽")
-    message_parts.append(f"📱 Телефон: {orders[0].customer_phone if orders else ''}")
+    message_parts.append(f"📱 Телефон: {orders[0].phone if orders else ''}")
     message_parts.append(f"👤 Имя: {orders[0].customer_name if orders else ''}")
     
     # Исправляем отображение города
-    city = orders[0].customer_city if orders and orders[0].customer_city else ''
+    city = orders[0].client_city if orders and orders[0].client_city else ''
     if city == 'custom':
         city = 'Не указан'
     message_parts.append(f"🏙 Город: {city}")
@@ -256,8 +286,8 @@ def generate_whatsapp_message(orders, request, db=None):
         # Если и это не работает, делаем запрос к базе
         elif db:
             try:
-                from app.models import PaymentMethod
-                payment_method = db.query(PaymentMethod).filter(PaymentMethod.id == orders[0].payment_method_id).first()
+                from app.models import PaymentMethod as PaymentMethodEnum
+                payment_method = db.query(PaymentMethodModel).filter(PaymentMethodModel.id == orders[0].payment_method_id).first()
                 if payment_method:
                     payment_method_name = payment_method.name
             except Exception as e:
@@ -290,17 +320,17 @@ async def order_success(
     order_codes = codes.split(',')
     print(f"DEBUG: order_success called with codes: {codes}")
     
-    # Получаем информацию о заказах
+    # Получаем информацию о заказах из основной таблицы Order
     orders = []
     for code in order_codes:
-        # Ищем заказ по коду (без телефона для отображения)
-        from app.models import ShopOrder
-        order = db.query(ShopOrder).filter(ShopOrder.order_code == code).first()
+        # Ищем заказ по коду в основной таблице Order
+        from app.models import Order
+        order = db.query(Order).filter(Order.order_code == code).first()
         print(f"DEBUG: Looking for order with code {code}, found: {order is not None}")
         if order:
             print(f"DEBUG: Order found: {order.order_code}, product: {order.product_name}")
             # Генерируем QR-код если его нет
-            if not order.has_qr:
+            if not hasattr(order, 'has_qr') or not order.has_qr:
                 QRService.generate_qr_for_order(db, order)
             orders.append(order)
     
@@ -321,8 +351,8 @@ async def view_order(
     db: Session = Depends(get_db)
 ):
     """Просмотр заказа по коду"""
-    from app.models import ShopOrder
-    order = db.query(ShopOrder).filter(ShopOrder.order_code == order_code).first()
+    from app.models import Order
+    order = db.query(Order).filter(Order.order_code == order_code).first()
     
     if not order:
         return templates.TemplateResponse("shop/order-not-found.html", {
@@ -357,10 +387,20 @@ async def search_order_post(
     db: Session = Depends(get_db)
 ):
     """Поиск заказа (POST)"""
-    from app.schemas.shop_order import ShopOrderSearch
-    search_data = ShopOrderSearch(order_code=order_code, phone=phone)
+    from app.services.orders import get_orders_by_phone
+    from app.models import Order
     
-    orders = ShopOrderService.search_orders(db, search_data)
+    # Ищем заказы по телефону
+    orders = get_orders_by_phone(db, phone)
+    
+    # Фильтруем по коду заказа
+    if order_code:
+        if len(order_code) == 4:
+            # Поиск по последним 4 символам
+            orders = [order for order in orders if order.order_code_last4 == order_code]
+        else:
+            # Поиск по полному коду
+            orders = [order for order in orders if order.order_code == order_code]
     
     if not orders:
         return templates.TemplateResponse("shop/search-order.html", {
@@ -381,7 +421,6 @@ async def search_order_post(
         "orders": orders,
         "phone": phone
     })
-
 
 # Публичный роут для доступа по QR-коду
 @router.get("/o/{qr_token}", response_class=HTMLResponse)
@@ -411,3 +450,4 @@ async def public_order_view(
         "qr_service": QRService,
         "is_public_view": True  # Флаг для отображения публичной версии
     })
+

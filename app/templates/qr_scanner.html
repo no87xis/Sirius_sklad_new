@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Сканер QR-кода - Сириус{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">Сканер QR-кода</h1>
+            <a href="javascript:history.back()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                ← Назад
+            </a>
+        </div>
+
+        <!-- Инструкции -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">Как использовать сканер:</h3>
+            <ul class="text-blue-800 space-y-1">
+                <li>• Разрешите доступ к камере при запросе браузера</li>
+                <li>• Наведите камеру на QR-код заказа</li>
+                <li>• Сканер автоматически распознает код и покажет информацию о заказе</li>
+                <li>• Используйте кнопку "Включить камеру" для повторного запуска</li>
+            </ul>
+        </div>
+
+        <!-- Сканер -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="mb-4">
+                <button id="startCamera" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
+                    📷 Включить камеру
+                </button>
+                <button id="stopCamera" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" style="display: none;">
+                    🛑 Остановить камеру
+                </button>
+            </div>
+            
+            <div id="qr-reader" class="w-full max-w-md mx-auto mb-4" style="display: none;"></div>
+            
+            <div id="qr-reader-results" class="text-center text-gray-500">
+                Камера не запущена. Нажмите "Включить камеру" для начала сканирования.
+            </div>
+        </div>
+
+        <!-- Результат сканирования -->
+        <div id="scanResult" class="bg-white rounded-lg shadow p-6 mt-6" style="display: none;">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Результат сканирования</h3>
+            <div id="resultContent"></div>
+        </div>
+
+        <!-- История сканирований -->
+        <div class="bg-white rounded-lg shadow p-6 mt-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">История сканирований</h3>
+            <div id="scanHistory" class="space-y-2">
+                <div class="text-gray-500 text-center">История сканирований будет отображаться здесь</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Подключаем HTML5 QR Scanner -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+let html5QrcodeScanner = null;
+let scanHistory = [];
+
+document.getElementById('startCamera').addEventListener('click', startScanner);
+document.getElementById('stopCamera').addEventListener('click', stopScanner);
+
+function startScanner() {
+    const qrReader = document.getElementById('qr-reader');
+    const startBtn = document.getElementById('startCamera');
+    const stopBtn = document.getElementById('stopCamera');
+    const resultsDiv = document.getElementById('qr-reader-results');
+    
+    qrReader.style.display = 'block';
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'inline-block';
+    resultsDiv.textContent = 'Сканирование...';
+    
+    html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        }
+    );
+    
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+}
+
+function stopScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+        html5QrcodeScanner = null;
+    }
+    
+    const qrReader = document.getElementById('qr-reader');
+    const startBtn = document.getElementById('startCamera');
+    const stopBtn = document.getElementById('stopCamera');
+    const resultsDiv = document.getElementById('qr-reader-results');
+    
+    qrReader.style.display = 'none';
+    startBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'none';
+    resultsDiv.textContent = 'Камера остановлена. Нажмите "Включить камеру" для повторного запуска.';
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+    // Останавливаем сканер после успешного сканирования
+    stopScanner();
+    
+    // Добавляем в историю
+    const timestamp = new Date().toLocaleString('ru-RU');
+    scanHistory.unshift({
+        code: decodedText,
+        timestamp: timestamp
+    });
+    
+    // Обновляем историю
+    updateScanHistory();
+    
+    // Показываем результат
+    showScanResult(decodedText);
+    
+    // Воспроизводим звук успеха
+    playSuccessSound();
+}
+
+function onScanFailure(error) {
+    // Ошибки сканирования игнорируем (это нормально)
+    console.log('Scan error:', error);
+}
+
+function showScanResult(qrCode) {
+    const resultDiv = document.getElementById('scanResult');
+    const resultContent = document.getElementById('resultContent');
+    
+    // Парсим QR-код (предполагаем, что это код заказа)
+    resultContent.innerHTML = `
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div class="flex items-center mb-3">
+                <div class="text-green-600 text-2xl mr-2">✅</div>
+                <h4 class="text-lg font-semibold text-green-900">QR-код успешно отсканирован!</h4>
+            </div>
+            <div class="space-y-2">
+                <div><strong>Код:</strong> <span class="font-mono text-lg">${qrCode}</span></div>
+                <div><strong>Тип:</strong> Код заказа</div>
+                <div><strong>Время:</strong> ${new Date().toLocaleString('ru-RU')}</div>
+            </div>
+            <div class="mt-4 space-x-2">
+                <button onclick="searchOrder('${qrCode}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    🔍 Найти заказ
+                </button>
+                <button onclick="copyToClipboard('${qrCode}')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    📋 Копировать код
+                </button>
+            </div>
+        </div>
+    `;
+    
+    resultDiv.style.display = 'block';
+}
+
+function updateScanHistory() {
+    const historyDiv = document.getElementById('scanHistory');
+    
+    if (scanHistory.length === 0) {
+        historyDiv.innerHTML = '<div class="text-gray-500 text-center">История сканирований пуста</div>';
+        return;
+    }
+    
+    historyDiv.innerHTML = scanHistory.map(item => `
+        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <div class="font-mono text-sm">${item.code}</div>
+            <div class="text-xs text-gray-500">${item.timestamp}</div>
+        </div>
+    `).join('');
+}
+
+function searchOrder(code) {
+    // Перенаправляем на страницу поиска заказов с предзаполненным кодом
+    window.location.href = `/orders/search?code=${encodeURIComponent(code)}`;
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        // Показываем уведомление об успешном копировании
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+        notification.textContent = 'Код скопирован в буфер обмена!';
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 2000);
+    });
+}
+
+function playSuccessSound() {
+    // Создаем простой звук успеха
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+}
+
+// Автоматически запускаем сканер при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Не запускаем автоматически - пользователь должен разрешить доступ к камере
+});
+</script>
+{% endblock %}

@@ -168,11 +168,14 @@
                                 </label>
                                 <select name="availability_status" id="availability_status" 
                                         class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-sirius-blue focus:border-sirius-blue sm:text-sm">
-                                    <option value="В_наличии">В наличии</option>
-                                    <option value="В_пути">В пути</option>
-                                    <option value="Под_заказ">Под заказ</option>
+                                                                         <option value="IN_STOCK">В наличии</option>
+                                     <option value="IN_TRANSIT">В пути</option>
+                                     <option value="ON_ORDER">Под заказ</option>
+                                     <option value="OUT_OF_STOCK">Нет в наличии</option>
                                 </select>
                                 <p class="mt-1 text-xs text-gray-500">Текущий статус товара</p>
+                                <!-- DEBUG: Показываем выбранное значение -->
+                                <p class="mt-1 text-xs text-red-500">DEBUG: Выбранное значение: <span id="debug-status">IN_STOCK</span></p>
                             </div>
 
                             <div>
@@ -218,18 +221,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const expectedDate = document.getElementById('expected_date');
     
     availabilityStatus.addEventListener('change', function() {
-        if (this.value === 'В_наличии') {
+        if (this.value === 'IN_STOCK') {
             expectedDate.value = '';
             expectedDate.disabled = true;
         } else {
             expectedDate.disabled = false;
         }
+        
+        // DEBUG: Обновляем отображение выбранного значения
+        document.getElementById('debug-status').textContent = this.value;
     });
     
     // Инициализация при загрузке
-    if (availabilityStatus.value === 'В_наличии') {
+    if (availabilityStatus.value === 'IN_STOCK') {
         expectedDate.disabled = true;
     }
+    
+    // DEBUG: Показываем начальное значение
+    document.getElementById('debug-status').textContent = availabilityStatus.value;
     
     fileInput.addEventListener('change', function(e) {
         const files = Array.from(e.target.files);

@@ -14,6 +14,14 @@ class ProductService:
 
     @staticmethod
     def create_product(db: Session, product: ProductCreate, availability_status: str = None, expected_date = None) -> Product:
+        # Преобразуем строку даты в объект date если нужно
+        if expected_date and isinstance(expected_date, str):
+            from datetime import datetime
+            try:
+                expected_date = datetime.strptime(expected_date, '%Y-%m-%d').date()
+            except ValueError:
+                expected_date = None
+        
         db_product = Product(
             name=product.name,
             description=product.description,
@@ -101,15 +109,20 @@ def is_low_stock(product: Product, stock: int) -> bool:
 
 
 def get_products(db: Session, skip: int = 0, limit: int = 100) -> List[Product]:
-    """Получить список товаров с вычисленными остатками"""
+    """Получить список товаров с вычисленными остатками и статусом"""
     from sqlalchemy.orm import joinedload
+    
+    # Получаем товары из базы данных БЕЗ ИЗМЕНЕНИЙ
     products = db.query(Product).options(joinedload(Product.photos)).offset(skip).limit(limit).all()
     
-    # Вычисляем остатки для каждого товара
+    # Вычисляем остатки для каждого товара, НЕ ТРОГАЯ availability_status
     for product in products:
         stock = calculate_stock(product, db)
         product.stock = stock
         product.is_low_stock = is_low_stock(product, stock)
+        
+        # ВАЖНО: НЕ ПЕРЕЗАПИСЫВАЕМ availability_status!
+        # Статус устанавливается только вручную при создании/редактировании товара
     
     return products
 
@@ -127,6 +140,8 @@ def get_product(db: Session, product_id: int) -> Optional[Product]:
 
 def create_product(db: Session, product_data: ProductCreate) -> Product:
     """Создать новый товар"""
+    from ..constants import ProductStatus
+    
     # Проверяем уникальность имени
     existing_product = db.query(Product).filter(Product.name == product_data.name).first()
     if existing_product:
@@ -135,15 +150,23 @@ def create_product(db: Session, product_data: ProductCreate) -> Product:
             detail="Товар с таким именем уже существует"
         )
     
+    # Проверяем и устанавливаем статус
+    availability_status = product_data.availability_status
+    if availability_status not in [ProductStatus.IN_STOCK, ProductStatus.ON_ORDER, ProductStatus.IN_TRANSIT, ProductStatus.OUT_OF_STOCK]:
+        availability_status = ProductStatus.IN_STOCK
+    
     # Создаем товар
     product = Product(
         name=product_data.name,
         description=product_data.description,
+        detailed_description=product_data.detailed_description,
         min_stock=product_data.min_stock,
         buy_price_eur=product_data.buy_price_eur,
         sell_price_rub=product_data.sell_price_rub,
         supplier_name=product_data.supplier_name,
-        quantity=product_data.initial_quantity
+        quantity=product_data.initial_quantity,
+        availability_status=availability_status,
+        expected_date=product_data.expected_date
     )
     
     db.add(product)
@@ -155,14 +178,26 @@ def create_product(db: Session, product_data: ProductCreate) -> Product:
 
 def update_product(db: Session, product_id: int, product_data: ProductUpdate) -> Optional[Product]:
     """Обновить товар"""
+    from ..constants import ProductStatus
+    
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         return None
     
-    # Обновляем только переданные поля
+    # Получаем данные для обновления
     update_data = product_data.dict(exclude_unset=True)
+    
+    # Проверяем статус если он передается
+    if 'availability_status' in update_data:
+        status = update_data['availability_status']
+        if status not in [ProductStatus.IN_STOCK, ProductStatus.ON_ORDER, ProductStatus.IN_TRANSIT, ProductStatus.OUT_OF_STOCK]:
+            # Если статус неверный, не обновляем его
+            del update_data['availability_status']
+    
+    # Применяем обновления
     for field, value in update_data.items():
-        setattr(product, field, value)
+        if value is not None:  # Не обновляем None значения
+            setattr(product, field, value)
     
     db.commit()
     db.refresh(product)
@@ -275,11 +310,8 @@ def update_product_quantity(db: Session, product_id: int, new_quantity: int) -> 
     # Обновляем количество
     product.quantity = new_quantity
     
-    # Автоматически обновляем статус наличия
-    if new_quantity > 0:
-        product.availability_status = 'IN_STOCK'
-    else:
-        product.availability_status = 'OUT_OF_STOCK'
+    # НЕ МЕНЯЕМ availability_status автоматически!
+    # Это должно быть установлено пользователем вручную
     
     db.commit()
     db.refresh(product)

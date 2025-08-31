@@ -3,6 +3,7 @@ from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
 from app.models.shop_order import ShopOrderStatus
+from app.schemas.shop_cart import ShopCartItemResponse
 
 
 class ShopOrderBase(BaseModel):
@@ -14,7 +15,11 @@ class ShopOrderBase(BaseModel):
 
 class ShopOrderCreate(ShopOrderBase):
     """Создание заказа из корзины"""
-    cart_items: List[dict] = Field(..., description="Список товаров из корзины")
+    cart_items: List[ShopCartItemResponse] = Field(..., description="Список товаров из корзины")
+    
+    class Config:
+        arbitrary_types_allowed = True
+        from_attributes = True
 
 
 class ShopOrderResponse(ShopOrderBase):

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from app.models import ShopOrder, ShopOrderStatus, Product, PaymentMethodModel
+from app.models import ShopOrder, ShopOrderStatus, Product, PaymentMethodModel, Order, OrderStatus, PaymentMethodEnum
 from app.schemas.shop_order import ShopOrderCreate, ShopOrderUpdate, ShopOrderSearch, ShopOrderAnalytics
 from app.services.order_code import OrderCodeService
 from app.services.qr_service import QRService
@@ -13,8 +13,8 @@ class ShopOrderService:
     """Сервис для работы с заказами магазина"""
     
     @staticmethod
-    def create_orders_from_cart(db: Session, order_data: ShopOrderCreate) -> List[ShopOrder]:
-        """Создаёт заказы из корзины (отдельный заказ для каждого товара)"""
+    def create_orders_from_cart(db: Session, order_data: ShopOrderCreate) -> List[Order]:
+        """Создаёт заказы из корзины в основной таблице orders"""
         orders = []
         
         for cart_item in order_data.cart_items:
@@ -31,32 +31,26 @@ class ShopOrderService:
             unit_price = product.sell_price_rub or Decimal('0')
             total_amount = unit_price * cart_item.quantity
             
-            # Получаем название способа оплаты
-            payment_method_name = None
-            if order_data.payment_method_id:
-                payment_method = db.query(PaymentMethodModel).filter(
-                    PaymentMethodModel.id == order_data.payment_method_id
-                ).first()
-                if payment_method:
-                    payment_method_name = payment_method.name
+            # Определяем статус заказа (не оплачен, пока менеджер не изменит)
+            status = OrderStatus.PAID_NOT_ISSUED
             
-            # Создаём заказ
-            order = ShopOrder(
+            # Создаём заказ в основной таблице orders
+            order = Order(
                 order_code=order_code,
                 order_code_last4=order_code_last4,
+                phone=order_data.customer_phone,
                 customer_name=order_data.customer_name,
-                customer_phone=order_data.customer_phone,
-                customer_city=order_data.customer_city,
+                client_city=order_data.customer_city,
                 product_id=product.id,
                 product_name=product.name,
-                quantity=cart_item.quantity,
+                qty=cart_item.quantity,
                 unit_price_rub=unit_price,
-                total_amount=total_amount,
+                status=status,
+                user_id="admin",  # Временно, потом можно изменить
+                source="shop",  # Указываем источник - магазин
                 payment_method_id=order_data.payment_method_id,
-                payment_method_name=payment_method_name,
-                status=ShopOrderStatus.ORDERED_NOT_PAID,
-                reserved_until=None,
-                expected_delivery_date=product.expected_date
+                payment_method=PaymentMethodEnum.UNPAID,  # Явно устанавливаем статус оплаты
+                created_at=datetime.now(timezone.utc)  # Явно устанавливаем дату создания
             )
             
             db.add(order)
@@ -67,10 +61,6 @@ class ShopOrderService:
         # Обновляем объекты после коммита
         for order in orders:
             db.refresh(order)
-        
-        # Генерируем QR-коды для всех заказов
-        for order in orders:
-            QRService.generate_qr_for_order(db, order)
         
         return orders
     

@@ -7,7 +7,7 @@ from datetime import datetime
 from ..db import get_db
 from ..services.auth import get_current_user_optional
 from ..services.products import (
-    ProductService, get_products, get_product, update_product, 
+    ProductService, get_products, get_product, create_product, update_product, 
     delete_product, create_supply, get_product_supplies
 )
 from ..schemas.product import ProductCreate, ProductUpdate
@@ -67,6 +67,22 @@ async def create_product_post(
         
 
         
+        # Преобразуем дату если указана
+        expected_date_obj = None
+        if expected_date:
+            try:
+                expected_date_obj = datetime.strptime(expected_date, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+        
+        from ..constants import ProductStatus, DEFAULT_STATUS
+        
+        # Проверяем и устанавливаем статус
+        if availability_status and availability_status in [ProductStatus.IN_STOCK, ProductStatus.ON_ORDER, ProductStatus.IN_TRANSIT, ProductStatus.OUT_OF_STOCK]:
+            final_status = availability_status
+        else:
+            final_status = DEFAULT_STATUS
+        
         product_data = ProductCreate(
             name=name,
             description=description,
@@ -75,28 +91,13 @@ async def create_product_post(
             buy_price_eur=Decimal(buy_price_eur) if buy_price_eur else None,
             sell_price_rub=Decimal(sell_price_rub) if sell_price_rub else None,
             supplier_name=supplier_name,
-            initial_quantity=initial_quantity
+            initial_quantity=initial_quantity,
+            availability_status=final_status,
+            expected_date=expected_date_obj
         )
-        
-        # Получаем дополнительные поля
-        availability_status = availability_status
-        expected_date_str = expected_date
-        
-        # Преобразуем дату если указана
-        expected_date_obj = None
-        if expected_date_str:
-            try:
-                expected_date_obj = datetime.strptime(expected_date_str, "%Y-%m-%d").date()
-            except ValueError:
-                pass
         
         # Создаем товар
-        product = ProductService.create_product(
-            db, 
-            product_data, 
-            availability_status=availability_status,
-            expected_date=expected_date
-        )
+        product = create_product(db, product_data)
         
         # Обрабатываем загруженное фото
         if photos and product and photos.filename:
@@ -221,6 +222,10 @@ async def edit_product_page(
     current_user = Depends(require_admin_or_manager())
 ):
     """Страница редактирования товара"""
+    # DEBUG: Тестируем запись в файл
+    with open("debug_page_load.txt", "w", encoding="utf-8") as f:
+        f.write(f"Страница редактирования загружена для товара {product_id}\n")
+    
     product = get_product(db, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Товар не найден")
@@ -251,6 +256,14 @@ async def update_product_post(
 ):
     """Обновление товара"""
     try:
+        from ..constants import ProductStatus
+        
+        # Проверяем и устанавливаем статус
+        if availability_status and availability_status in [ProductStatus.IN_STOCK, ProductStatus.ON_ORDER, ProductStatus.IN_TRANSIT, ProductStatus.OUT_OF_STOCK]:
+            availability_status_for_schema = availability_status
+        else:
+            availability_status_for_schema = None
+        
         # Преобразуем дату из строки
         expected_date_obj = None
         if expected_date:
@@ -258,22 +271,33 @@ async def update_product_post(
             try:
                 expected_date_obj = datetime.strptime(expected_date, '%Y-%m-%d').date()
             except ValueError:
-                print(f"Ошибка парсинга даты: {expected_date}")
+                pass
         
-        product_data = ProductUpdate(
-            name=name,
-            description=description,
-            detailed_description=detailed_description,
-            min_stock=min_stock,
-            buy_price_eur=buy_price_eur,
-            sell_price_rub=sell_price_rub,
-            supplier_name=supplier_name,
-            availability_status=availability_status,
-            expected_date=expected_date_obj
-        )
+        # Создаем данные для обновления, исключая None значения
+        update_fields = {}
+        if name is not None:
+            update_fields['name'] = name
+        if description is not None:
+            update_fields['description'] = description
+        if detailed_description is not None:
+            update_fields['detailed_description'] = detailed_description
+        if min_stock is not None:
+            update_fields['min_stock'] = min_stock
+        if buy_price_eur is not None:
+            update_fields['buy_price_eur'] = buy_price_eur
+        if sell_price_rub is not None:
+            update_fields['sell_price_rub'] = sell_price_rub
+        if supplier_name is not None:
+            update_fields['supplier_name'] = supplier_name
+        if availability_status_for_schema is not None:
+            update_fields['availability_status'] = availability_status_for_schema
+        if expected_date_obj is not None:
+            update_fields['expected_date'] = expected_date_obj
+        
+        product_data = ProductUpdate(**update_fields)
         
         # Обновляем товар
-        update_product(db, product_id, product_data)
+        result = update_product(db, product_id, product_data)
         
         # Обновляем количество товара отдельно (если указано)
         if quantity is not None:
@@ -296,8 +320,12 @@ async def update_product_post(
                 # Логируем ошибку, но не прерываем обновление товара
                 print(f"Ошибка загрузки фото {new_photos.filename}: {photo_error}")
         
+        # Проверяем финальный статус
+        final_product = get_product(db, product_id)
+        final_status = final_product.availability_status if final_product else "Не найден"
+        
         return RedirectResponse(
-            url=f"/products/{product_id}?success=Товар успешно обновлен",
+            url=f"/products/{product_id}?success=Товар обновлен. Финальный статус: {final_status}",
             status_code=status.HTTP_302_FOUND
         )
     except Exception as e:
