@@ -1,0 +1,161 @@
+from fastapi import FastAPI, Request, Depends
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+from sqlalchemy.orm import Session
+from .config import settings
+from .db import engine, Base, get_db
+from .services.auth import get_current_user_optional
+
+# Create tables
+Base.metadata.create_all(bind=engine)
+
+# Create FastAPI app
+app = FastAPI(
+    title="Сириус - Система учёта склада",
+    description="Веб-приложение для управления складом, заказами и поставками",
+    version="1.0.0"
+)
+
+# Add session middleware
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.secret_key,
+    max_age=settings.session_max_age,
+    same_site="lax",
+    https_only=False
+)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Templates
+templates = Jinja2Templates(directory="app/templates")
+
+# ВАЖНО: Импортируем роутеры ПОСЛЕ создания app
+# Это предотвращает циклические импорты
+
+# Основные веб-роутеры
+try:
+    from .routers import web_public
+    app.include_router(web_public.router)
+    print("✅ web_public подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения web_public: {e}")
+
+try:
+    from .routers import web_products
+    app.include_router(web_products.router)
+    print("✅ web_products подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения web_products: {e}")
+
+try:
+    from .routers import web_orders
+    app.include_router(web_orders.router)
+    print("✅ web_orders подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения web_orders: {e}")
+
+try:
+    from .routers import web_shop
+    app.include_router(web_shop.router)
+    print("✅ web_shop подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения web_shop: {e}")
+
+# API роутеры
+try:
+    from .routers import shop_api
+    app.include_router(shop_api.router, prefix="/api")
+    print("✅ shop_api подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения shop_api: {e}")
+
+try:
+    from .routers import shop_admin
+    app.include_router(shop_admin.router)
+    print("✅ shop_admin подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения shop_admin: {e}")
+
+# Админ-панель
+try:
+    from .routers import web_admin_panel
+    app.include_router(web_admin_panel.router)
+    print("✅ web_admin_panel подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения web_admin_panel: {e}")
+
+# Аналитика
+try:
+    from .routers import web_analytics
+    app.include_router(web_analytics.router)
+    print("✅ web_analytics подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения web_analytics: {e}")
+
+# QR-сканер
+try:
+    from .routers import qr_scanner
+    app.include_router(qr_scanner.router)
+    print("✅ qr_scanner подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения qr_scanner: {e}")
+
+# Дополнительные API
+try:
+    from .routers import api
+    app.include_router(api.router)
+    print("✅ api подключен")
+except Exception as e:
+    print(f"❌ Ошибка подключения api: {e}")
+
+# Роуты для основных страниц
+@app.get("/")
+async def root(request: Request, db: Session = Depends(get_db)):
+    """Главная страница"""
+    current_user = get_current_user_optional(request, db)
+    return templates.TemplateResponse("index.html", {"request": request, "current_user": current_user})
+
+@app.get("/health")
+async def health_check():
+    """Проверка здоровья сервера"""
+    return {
+        "status": "healthy", 
+        "message": "Sirius Group работает!",
+        "features": [
+            "Полный функционал склада",
+            "Магазин с корзиной",
+            "Аналитика и отчеты",
+            "Админ-панель",
+            "QR-коды и сканер",
+            "Управление заказами",
+            "Управление продуктами"
+        ]
+    }
+
+@app.get("/features")
+async def features_list():
+    """Список всех функций сайта"""
+    return {
+        "features": {
+            "warehouse": "Управление складом и остатками",
+            "shop": "Интернет-магазин с корзиной",
+            "orders": "Система заказов и поставок",
+            "analytics": "Аналитика продаж и остатков",
+            "admin": "Административная панель",
+            "qr": "QR-коды и сканер",
+            "reports": "Отчеты и экспорт данных",
+            "users": "Управление пользователями"
+        }
+    }
+
+@app.get("/test")
+async def test_endpoint():
+    """Тестовый endpoint для проверки работы"""
+    return {"message": "Сервер работает!", "status": "OK"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
