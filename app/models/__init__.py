@@ -7,10 +7,9 @@ from .payment import PaymentMethod as PaymentMethodModel, PaymentInstrument, Cas
 from .product_photo import ProductPhoto
 from .shop_cart import ShopCart
 from .shop_order import ShopOrder, ShopOrderStatus
-from ..db import Base
 
 __all__ = [
-    "Base", "User", "UserRole", "Product", "Order", "OrderStatus", "PaymentMethodEnum", 
+    "User", "UserRole", "Product", "Order", "OrderStatus", "PaymentMethodEnum", 
     "Supply", "OperationLog", "PaymentMethodModel", "PaymentInstrument", "CashFlow",
     "ProductPhoto", "ShopCart", "ShopOrder", "ShopOrderStatus"
 ]
