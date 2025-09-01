@@ -34,10 +34,28 @@
                 </button>
             </div>
             
-            <div id="qr-reader" class="w-full max-w-md mx-auto mb-4" style="display: none;"></div>
+            <!-- Контейнер для камеры -->
+            <div id="qr-reader" class="w-full max-w-md mx-auto mb-4 border-2 border-dashed border-gray-300 rounded-lg p-4" style="display: none;">
+                <div class="text-center text-gray-500">
+                    <div class="text-4xl mb-2">📷</div>
+                    <div>Инициализация камеры...</div>
+                </div>
+            </div>
             
+            <!-- Статус камеры -->
             <div id="qr-reader-results" class="text-center text-gray-500">
                 Камера не запущена. Нажмите "Включить камеру" для начала сканирования.
+            </div>
+            
+            <!-- Ошибки -->
+            <div id="cameraError" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg" style="display: none;">
+                <div class="flex items-center">
+                    <div class="text-red-600 text-xl mr-2">⚠️</div>
+                    <div>
+                        <div class="font-semibold text-red-800">Ошибка камеры</div>
+                        <div id="errorMessage" class="text-red-700 text-sm"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -72,11 +90,13 @@ function startScanner() {
     const startBtn = document.getElementById('startCamera');
     const stopBtn = document.getElementById('stopCamera');
     const resultsDiv = document.getElementById('qr-reader-results');
+    const cameraErrorDiv = document.getElementById('cameraError');
     
     qrReader.style.display = 'block';
     startBtn.style.display = 'none';
     stopBtn.style.display = 'inline-block';
     resultsDiv.textContent = 'Сканирование...';
+    cameraErrorDiv.style.display = 'none'; // Скрываем ошибку при запуске
     
     html5QrcodeScanner = new Html5QrcodeScanner(
         "qr-reader",
@@ -100,11 +120,13 @@ function stopScanner() {
     const startBtn = document.getElementById('startCamera');
     const stopBtn = document.getElementById('stopCamera');
     const resultsDiv = document.getElementById('qr-reader-results');
+    const cameraErrorDiv = document.getElementById('cameraError');
     
     qrReader.style.display = 'none';
     startBtn.style.display = 'inline-block';
     stopBtn.style.display = 'none';
     resultsDiv.textContent = 'Камера остановлена. Нажмите "Включить камеру" для повторного запуска.';
+    cameraErrorDiv.style.display = 'none'; // Скрываем ошибку при остановке
 }
 
 function onScanSuccess(decodedText, decodedResult) {
@@ -131,6 +153,11 @@ function onScanSuccess(decodedText, decodedResult) {
 function onScanFailure(error) {
     // Ошибки сканирования игнорируем (это нормально)
     console.log('Scan error:', error);
+    const resultsDiv = document.getElementById('qr-reader-results');
+    const cameraErrorDiv = document.getElementById('cameraError');
+    resultsDiv.textContent = 'Сканирование не удалось. Пожалуйста, проверьте настройки камеры.';
+    cameraErrorDiv.style.display = 'block';
+    document.getElementById('errorMessage').textContent = error.message;
 }
 
 function showScanResult(qrCode) {

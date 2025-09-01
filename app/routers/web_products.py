@@ -25,6 +25,10 @@ async def products_page(
     current_user = Depends(get_current_user_optional)
 ):
     """Страница управления складом"""
+    # Проверяем авторизацию
+    if not current_user:
+        return RedirectResponse(url="/login?error=Требуется авторизация для доступа к складу", status_code=302)
+    
     products = get_products(db)
     return templates.TemplateResponse(
         "products.html", 

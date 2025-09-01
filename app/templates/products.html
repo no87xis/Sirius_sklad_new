@@ -112,20 +112,20 @@
                                         {{ product.supplier_name or '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div class="flex space-x-2">
+                                        <div class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
                                             <a href="/products/{{ product.id }}" class="text-sirius-blue hover:text-sirius-indigo">
-                                                Просмотр
+                                                👁️ Просмотр
                                             </a>
                                             {% if current_user and current_user.role in ['admin', 'manager'] %}
                                             <a href="/products/{{ product.id }}/edit" class="text-indigo-600 hover:text-indigo-900">
-                                                Редактировать
+                                                ✏️ Редактировать
                                             </a>
                                             <a href="/products/{{ product.id }}/supplies/new" class="text-green-600 hover:text-green-900">
-                                                Поставка
+                                                📦 Поставка
                                             </a>
                                             <form method="POST" action="/products/{{ product.id }}/delete" class="inline" onsubmit="return confirm('Удалить товар «{{ product.name }}»?')">
                                                 <button type="submit" class="text-red-600 hover:text-red-900">
-                                                    Удалить
+                                                    🗑️ Удалить
                                                 </button>
                                             </form>
                                             {% endif %}

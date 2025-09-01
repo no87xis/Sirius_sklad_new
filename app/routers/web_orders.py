@@ -30,6 +30,10 @@ async def orders_page(
     code_search: Optional[str] = Query(None)
 ):
     """Страница списка заказов"""
+    # Проверяем авторизацию
+    if not current_user:
+        return RedirectResponse(url="/login?error=Требуется авторизация для доступа к заказам", status_code=302)
+    
     orders = get_orders(db, status_filter=status_filter)
     
     # Фильтрация по телефону
