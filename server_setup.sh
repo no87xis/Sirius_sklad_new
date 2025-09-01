@@ -76,7 +76,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath('.')))
 from app.db import engine
 from app.models import Base
 from app.db import SessionLocal
-from app.models import User
+from app.models import User, UserRole
 from app.services.auth import get_password_hash
 
 print('Создание таблиц...')
@@ -89,8 +89,8 @@ try:
     if not admin:
         admin_user = User(
             username='admin',
-            email='admin@sirius.com',
             hashed_password=get_password_hash('admin123'),
+            role=UserRole.ADMIN,
             is_active=True,
             is_superuser=True
         )
