@@ -5,7 +5,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from .config import settings
 from .db import engine, Base, get_db
-from .routers import web_public, web_products, web_orders, web_analytics, web_admin_panel, api, web_shop, shop_api, shop_admin, qr_scanner
+from .routers import web_public, web_products, web_orders, web_analytics, web_admin_panel, api, web_shop, shop_api, shop_admin, qr_scanner, delivery_payment, delivery_notifications
 from .services.auth import get_current_user_optional
 
 # Create tables
@@ -40,10 +40,12 @@ app.include_router(web_orders.router)
 app.include_router(web_analytics.router, prefix="/admin")
 app.include_router(web_admin_panel.router)
 app.include_router(api.router, prefix="/api")
-app.include_router(web_shop.router)
-app.include_router(shop_api.router)
+app.include_router(shop_api.router)  # API роутер должен быть ПЕРЕД web_shop
+app.include_router(web_shop.router)  # Web роутер подключается ПОСЛЕ API
 app.include_router(shop_admin.router)
 app.include_router(qr_scanner.router)
+app.include_router(delivery_payment.router)
+app.include_router(delivery_notifications.router)
 
 # Роуты для основных страниц
 @app.get("/")

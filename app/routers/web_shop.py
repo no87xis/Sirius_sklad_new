@@ -179,28 +179,43 @@ async def process_checkout(
     customer_name: str = Form(...),
     customer_phone: str = Form(...),
     customer_city: str = Form(...),
-    customer_city_custom: Optional[str] = Form(None),
+    delivery_option: str = Form(...),
+    delivery_city_other: Optional[str] = Form(None),
     payment_method_id: Optional[int] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Обрабатывает оформление заказа"""
+    """Обрабатывает оформление заказа с системой доставки"""
     session_id = get_session_id(request)
     cart_summary = ShopCartService.get_cart_summary(db, session_id)
     
     if not cart_summary.items:
         return RedirectResponse(url="/shop/cart", status_code=303)
     
-    # Проверяем и обрабатываем город
+    # Проверяем и обрабатываем город и доставку
     final_city = customer_city
-    if customer_city == 'custom' and customer_city_custom:
-        final_city = customer_city_custom.strip()
-    elif customer_city == 'custom' and not customer_city_custom:
-        return RedirectResponse(url="/shop/checkout?error=Укажите название города", status_code=303)
-    elif not customer_city:
-        return RedirectResponse(url="/shop/checkout?error=Выберите город", status_code=303)
+    
+    # Валидация полей доставки
+    if delivery_option == 'COURIER_OTHER' and not delivery_city_other:
+        return RedirectResponse(url="/shop/checkout?error=Укажите название города для доставки", status_code=303)
+    
+    # Устанавливаем город в зависимости от варианта доставки
+    if delivery_option == 'COURIER_OTHER' and delivery_city_other:
+        final_city = delivery_city_other.strip()
+    elif delivery_option == 'SELF_PICKUP_GROZNY':
+        final_city = 'Грозный'
+    elif delivery_option == 'COURIER_GROZNY':
+        final_city = 'Грозный'
+    elif delivery_option == 'COURIER_MAK':
+        final_city = 'Махачкала'
+    elif delivery_option == 'COURIER_KHAS':
+        final_city = 'Хасавюрт'
     
     try:
         from app.schemas.shop_order import ShopOrderCreate
+        from app.constants.delivery import calculate_delivery_cost
+        
+        # Рассчитываем стоимость доставки
+        delivery_cost = calculate_delivery_cost(delivery_option, cart_summary.total_items)
         
         # Создаем данные заказа
         order_data = ShopOrderCreate(
@@ -208,6 +223,9 @@ async def process_checkout(
             customer_phone=customer_phone,
             customer_city=final_city,
             payment_method_id=payment_method_id,
+            delivery_option=delivery_option,
+            delivery_city_other=delivery_city_other if delivery_option == 'COURIER_OTHER' else None,
+            delivery_cost_rub=delivery_cost,
             cart_items=cart_summary.items
         )
         

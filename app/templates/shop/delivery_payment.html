@@ -1,0 +1,140 @@
+{% extends "shop/base.html" %}
+
+{% block title %}Оплата доставки{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Заголовок -->
+    <div class="text-center mb-8">
+        <div class="mx-auto h-16 w-16 text-yellow-400 mb-4">
+            <i class="fas fa-truck text-5xl"></i>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Оплата доставки</h1>
+        <p class="text-gray-600 text-sm sm:text-base">Свяжитесь с менеджером для уточнения деталей</p>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="max-w-2xl mx-auto">
+        <!-- Информационный блок -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-400 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-medium text-blue-800 mb-2">Оплата доставки пока недоступна</h3>
+                    <p class="text-blue-700 text-sm sm:text-base">
+                        Для оплаты доставки и уточнения деталей свяжитесь с нашими менеджерами через WhatsApp. 
+                        Они помогут вам оформить доставку и ответят на все вопросы.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- WhatsApp кнопки -->
+        <div class="space-y-4 mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 text-center mb-4">Связаться с менеджером</h2>
+            
+            <!-- Камалда -->
+            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-green-600 text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Камалда</h3>
+                            <p class="text-sm text-gray-500">Менеджер по доставке</p>
+                        </div>
+                    </div>
+                    <a href="https://wa.me/79993980159?text={{ whatsapp_message|urlencode }}" 
+                       target="_blank"
+                       class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+                        <i class="fab fa-whatsapp text-lg"></i>
+                        <span class="hidden sm:inline">Написать</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Иван -->
+            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600 text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Иван</h3>
+                            <p class="text-sm text-gray-500">Главный менеджер</p>
+                        </div>
+                    </div>
+                    <a href="https://wa.me/375293571197?text={{ whatsapp_message|urlencode }}" 
+                       target="_blank"
+                       class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+                        <i class="fab fa-whatsapp text-lg"></i>
+                        <span class="hidden sm:inline">Написать</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Дополнительная информация -->
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Информация о доставке</h3>
+            <div class="space-y-3 text-sm text-gray-700">
+                <div class="flex items-start space-x-2">
+                    <i class="fas fa-check text-green-500 mt-1"></i>
+                    <span>Самовывоз со склада в Грозном - бесплатно</span>
+                </div>
+                <div class="flex items-start space-x-2">
+                    <i class="fas fa-check text-green-500 mt-1"></i>
+                    <span>Доставка по Грозному - 300 ₽ за единицу товара</span>
+                </div>
+                <div class="flex items-start space-x-2">
+                    <i class="fas fa-check text-green-500 mt-1"></i>
+                    <span>Доставка в Махачкалу и Хасавюрт - 300 ₽ за единицу товара</span>
+                </div>
+                <div class="flex items-start space-x-2">
+                    <i class="fas fa-check text-green-500 mt-1"></i>
+                    <span>Доставка в другие города - по согласованию</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопка возврата -->
+        <div class="text-center">
+            <a href="/shop" 
+               class="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Вернуться в каталог
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- WhatsApp Web App интеграция -->
+<script>
+// Проверяем, открыта ли страница в WhatsApp Web App
+if (window.location.href.includes('whatsapp')) {
+    // Если открыто в WhatsApp, показываем дополнительную информацию
+    document.addEventListener('DOMContentLoaded', function() {
+        const infoBlock = document.querySelector('.bg-blue-50');
+        if (infoBlock) {
+            infoBlock.innerHTML = `
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-mobile-alt text-blue-400 text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-lg font-medium text-blue-800 mb-2">Открыто в WhatsApp</h3>
+                        <p class="text-blue-700 text-sm">
+                            Вы можете сразу написать менеджеру или вернуться на сайт для оформления заказа.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+    });
+}
+</script>
+{% endblock %}

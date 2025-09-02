@@ -40,6 +40,11 @@ class ShopOrder(Base):
     payment_method_id = Column(Integer, ForeignKey("payment_methods.id"), nullable=True)
     payment_method_name = Column(String(100), nullable=True)
     
+    # Доставка
+    delivery_option = Column(String(50), nullable=True)  # SELF_PICKUP_GROZNY, COURIER_GROZNY, etc.
+    delivery_city_other = Column(String(100), nullable=True)  # Город для доставки в "другой город"
+    delivery_cost_rub = Column(Numeric(10, 2), nullable=True)  # Стоимость доставки
+    
     # Статус и резервирование
     status = Column(String(20), default=ShopOrderStatus.ORDERED_NOT_PAID, nullable=False, index=True)
     reserved_until = Column(DateTime(timezone=True), nullable=True)  # До какого времени зарезервирован (может быть NULL)

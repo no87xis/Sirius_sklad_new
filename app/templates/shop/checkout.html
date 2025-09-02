@@ -59,27 +59,45 @@
                 <p class="text-sm text-gray-500 mt-1">Формат: +7 (XXX) XXX-XX-XX</p>
             </div>
             
-            <!-- Город -->
+            <!-- Способ доставки -->
             <div>
-                <label for="customer_city" class="block text-sm font-medium text-gray-700 mb-2">
-                    Город <span class="text-red-500">*</span>
+                <label for="delivery_option" class="block text-sm font-medium text-gray-700 mb-2">
+                    Способ доставки <span class="text-red-500">*</span>
                 </label>
-                <select name="customer_city" 
-                        id="customer_city" 
+                <select name="delivery_option" 
+                        id="delivery_option" 
                         required
                         class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Выберите город</option>
-                    <option value="Грозный">Грозный</option>
-                    <option value="Махачкала">Махачкала</option>
-                    <option value="Хасавюрт">Хасавюрт</option>
-                    <option value="custom">Другой</option>
+                    <option value="">Выберите способ доставки</option>
+                    <option value="SELF_PICKUP_GROZNY">Самовывоз (Склад, Грозный) - 0 ₽</option>
+                    <option value="COURIER_GROZNY">Доставка по Грозному - 300 ₽ × количество</option>
+                    <option value="COURIER_MAK">Доставка в Махачкалу - 300 ₽ × количество</option>
+                    <option value="COURIER_KHAS">Доставка в Хасавюрт - 300 ₽ × количество</option>
+                    <option value="COURIER_OTHER">Другой город (по согласованию)</option>
                 </select>
-                <input type="text" 
-                       name="customer_city_custom" 
-                       id="customer_city_custom"
-                       class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2 hidden"
-                       placeholder="Введите название города">
+                
+                <div id="delivery_city_other_container" class="mt-2 hidden">
+                    <label for="delivery_city_other" class="block text-sm font-medium text-gray-700 mb-2">
+                        Название города для доставки <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" 
+                           name="delivery_city_other" 
+                           id="delivery_city_other"
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Введите название города">
+                    <p class="text-sm text-gray-500 mt-1">Обязательно для заполнения при выборе "Другой город"</p>
+                </div>
+                
+                <div id="delivery_cost_info" class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md hidden">
+                    <p class="text-sm text-blue-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <span id="delivery_cost_text"></span>
+                    </p>
+                </div>
             </div>
+            
+            <!-- Скрытое поле для обратной совместимости -->
+            <input type="hidden" name="customer_city" id="customer_city" value="">
             
             <!-- Способ оплаты -->
             <div>
@@ -97,6 +115,7 @@
                     <option value="4">Наличными в кассу в Назране</option>
                     <option value="5">Наличными в кассу в Хасавюрте</option>
                     <option value="6">Оплата по б/н на р/с ИП +7%</option>
+                    <option value="7" id="courier_payment_option" class="courier-only-option" disabled>Наличным курьеру</option>
                 </select>
             </div>
             
@@ -106,6 +125,8 @@
                 <i class="fas fa-check mr-2"></i>
                 Оформить заказ
             </button>
+            
+
         </form>
         
         <!-- Предупреждение -->
@@ -185,9 +206,18 @@
                 <span class="text-gray-600">Количество товаров:</span>
                 <span class="font-medium">{{ cart.total_items }}</span>
             </div>
+            
+            <!-- Стоимость доставки -->
+            <div id="delivery_summary" class="hidden">
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-gray-600">Доставка:</span>
+                    <span id="delivery_cost_display" class="font-medium">0 ₽</span>
+                </div>
+            </div>
+            
             <div class="flex justify-between text-lg font-semibold text-gray-900">
                 <span>Итого к оплате:</span>
-                <span class="text-blue-600">{{ "%.2f"|format(cart.total_amount) }} ₽</span>
+                <span id="total_amount" class="text-blue-600">{{ "%.2f"|format(cart.total_amount) }} ₽</span>
             </div>
         </div>
         
@@ -199,6 +229,19 @@
                     <h3 class="text-sm font-medium text-blue-800">Доставка</h3>
                     <p class="text-sm text-blue-700 mt-1">
                         Товары можно забрать на складе в Грозном или заказать доставку в другие города.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Информация о резервировании -->
+        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <div class="flex">
+                <i class="fas fa-clock text-yellow-500 mt-1 mr-3"></i>
+                <div>
+                    <h3 class="text-sm font-medium text-yellow-800">Резервирование товара</h3>
+                    <p class="text-sm text-yellow-700 mt-1">
+                        Товар резервируется на 48 часов. В случае отсутствия оплаты резерв снимается.
                     </p>
                 </div>
             </div>
@@ -330,6 +373,170 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+    
+    // Обработка выбора способа доставки
+    const deliveryOptionSelect = document.getElementById('delivery_option');
+    const deliveryCityOtherContainer = document.getElementById('delivery_city_other_container');
+    const deliveryCityOtherInput = document.getElementById('delivery_city_other');
+    const deliveryCostInfo = document.getElementById('delivery_cost_info');
+    const deliveryCostText = document.getElementById('delivery_cost_text');
+    
+    deliveryOptionSelect.addEventListener('change', function() {
+        const selectedOption = this.value;
+        const totalItems = parseInt('{{ cart.total_items }}') || 0;
+        
+        if (selectedOption === 'COURIER_OTHER') {
+            deliveryCityOtherContainer.classList.remove('hidden');
+            deliveryCityOtherInput.required = true;
+            deliveryCostInfo.classList.remove('hidden');
+            deliveryCostText.textContent = 'Стоимость доставки будет рассчитана при оформлении заказа.';
+        } else if (selectedOption === 'SELF_PICKUP_GROZNY') {
+            deliveryCityOtherContainer.classList.add('hidden');
+            deliveryCityOtherInput.required = false;
+            deliveryCityOtherInput.value = '';
+            deliveryCostInfo.classList.remove('hidden');
+            deliveryCostText.textContent = 'Самовывоз - бесплатно (0 ₽)';
+        } else if (selectedOption && selectedOption.startsWith('COURIER_')) {
+            deliveryCityOtherContainer.classList.add('hidden');
+            deliveryCityOtherInput.required = false;
+            deliveryCityOtherInput.value = '';
+            deliveryCostInfo.classList.remove('hidden');
+            const deliveryCost = totalItems * 300;
+            deliveryCostText.textContent = `Стоимость доставки: ${deliveryCost} ₽ (300 ₽ × ${totalItems} ед.)`;
+        } else {
+            deliveryCityOtherContainer.classList.add('hidden');
+            deliveryCityOtherInput.required = false;
+            deliveryCityOtherInput.value = '';
+            deliveryCostInfo.classList.add('hidden');
+            deliveryCostText.textContent = '';
+        }
+        
+        // Обновляем итоговую сумму с учетом доставки
+        updateTotalWithDelivery(selectedOption, totalItems);
+        updateDeliverySummary(selectedOption, totalItems);
+        
+                 // Активируем/деактивируем опцию "Наличным курьеру"
+         updateCourierPaymentOption(selectedOption);
+     });
+     
+     // Функция активации/деактивации опции "Наличным курьеру"
+     function updateCourierPaymentOption(deliveryOption) {
+         const courierPaymentOption = document.getElementById('courier_payment_option');
+         const totalItems = parseInt('{{ cart.total_items }}') || 0;
+         
+         // Проверяем статус товаров в корзине
+         const cartItems = {{ cart.items|tojson }};
+         let hasInStockItems = false;
+         let hasPreOrderItems = false;
+         
+         for (let item of cartItems) {
+             if (item.available_stock > 0) {
+                 hasInStockItems = true;
+             } else {
+                 hasPreOrderItems = true;
+             }
+         }
+         
+         // Логика активации опции "Наличным курьеру":
+         // 1. Должна быть выбрана курьерская доставка (не "другой город")
+         // 2. В корзине должны быть товары в наличии
+         // 3. НЕ должно быть товаров под заказ/в пути
+         const isCourierDelivery = deliveryOption && 
+                                  deliveryOption.startsWith('COURIER_') && 
+                                  deliveryOption !== 'COURIER_OTHER';
+         
+         const canPayToCourier = isCourierDelivery && hasInStockItems && !hasPreOrderItems;
+         
+         if (canPayToCourier) {
+             // Активируем опцию для курьерской доставки товаров в наличии
+             courierPaymentOption.disabled = false;
+             courierPaymentOption.classList.remove('text-gray-400');
+             courierPaymentOption.classList.add('text-gray-900');
+         } else {
+             // Деактивируем опцию
+             courierPaymentOption.disabled = true;
+             courierPaymentOption.classList.add('text-gray-400');
+             courierPaymentOption.classList.remove('text-gray-900');
+             
+             // Если была выбрана опция "Наличным курьеру", сбрасываем выбор
+             if (document.getElementById('payment_method_id').value === '7') {
+                 document.getElementById('payment_method_id').value = '';
+             }
+         }
+     }
+     
+     // Функция обновления отображения доставки
+    function updateDeliverySummary(deliveryOption, totalItems) {
+        const deliverySummary = document.getElementById('delivery_summary');
+        const deliveryCostDisplay = document.getElementById('delivery_cost_display');
+        
+        if (deliveryOption && deliveryOption !== '') {
+            deliverySummary.classList.remove('hidden');
+            
+            if (deliveryOption === 'SELF_PICKUP_GROZNY') {
+                deliveryCostDisplay.textContent = '0 ₽';
+            } else if (deliveryOption.startsWith('COURIER_') && deliveryOption !== 'COURIER_OTHER') {
+                const deliveryCost = totalItems * 300;
+                deliveryCostDisplay.textContent = `${deliveryCost} ₽`;
+            } else if (deliveryOption === 'COURIER_OTHER') {
+                deliveryCostDisplay.textContent = 'По согласованию';
+            }
+        } else {
+            deliverySummary.classList.add('hidden');
+        }
+    }
+    
+    // Функция обновления итоговой суммы с учетом доставки
+    function updateTotalWithDelivery(deliveryOption, totalItems) {
+        let baseAmount = parseFloat('{{ cart.total_amount }}') || 0;
+        let deliveryCost = 0;
+        
+        if (deliveryOption && deliveryOption.startsWith('COURIER_') && deliveryOption !== 'COURIER_OTHER') {
+            deliveryCost = totalItems * 300;
+        }
+        
+        // Учитываем проценты от способа оплаты
+        const selectedPaymentMethod = paymentMethodSelect.value;
+        if (selectedPaymentMethod === '1') { // СБП +1%
+            baseAmount += baseAmount * 0.01;
+        } else if (selectedMethod === '6') { // Б/н на р/с ИП +7%
+            baseAmount += baseAmount * 0.07;
+        }
+        
+        const totalWithDelivery = baseAmount + deliveryCost;
+        
+        // Обновляем отображаемую сумму
+        const totalAmountElement = document.getElementById('total_amount');
+        if (totalAmountElement) {
+            totalAmountElement.textContent = totalWithDelivery.toFixed(2) + ' ₽';
+        }
+    }
+    
+    // При отправке формы заполняем скрытое поле города
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const selectedDeliveryOption = deliveryOptionSelect.value;
+        
+        // Заполняем поле города для совместимости
+        if (selectedDeliveryOption === 'COURIER_OTHER' && deliveryCityOtherInput.value.trim() !== '') {
+            document.getElementById('customer_city').value = deliveryCityOtherInput.value.trim();
+        } else if (selectedDeliveryOption === 'SELF_PICKUP_GROZNY') {
+            document.getElementById('customer_city').value = 'Грозный';
+        } else if (selectedDeliveryOption === 'COURIER_GROZNY') {
+            document.getElementById('customer_city').value = 'Грозный';
+        } else if (selectedDeliveryOption === 'COURIER_MAK') {
+            document.getElementById('customer_city').value = 'Махачкала';
+        } else if (selectedDeliveryOption === 'COURIER_KHAS') {
+            document.getElementById('customer_city').value = 'Хасавюрт';
+        }
+        
+        // Валидация
+        if (selectedDeliveryOption === 'COURIER_OTHER' && deliveryCityOtherInput.value.trim() === '') {
+            e.preventDefault();
+            alert('Пожалуйста, введите название города для доставки.');
+            deliveryCityOtherInput.focus();
+            return false;
+        }
+    });
 });
 </script>
 {% endblock %}

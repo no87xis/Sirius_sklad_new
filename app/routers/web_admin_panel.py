@@ -27,13 +27,25 @@ async def admin_dashboard(
     user_stats = get_user_statistics(db)
     log_stats = get_log_statistics(db)
     
+    # Получаем уведомления о доставке
+    from ..services.delivery_notifications import DeliveryNotificationService
+    upcoming_deliveries = DeliveryNotificationService.get_upcoming_deliveries(db, days_ahead=5)
+    overdue_deliveries = DeliveryNotificationService.get_overdue_deliveries(db)
+    
+    delivery_notifications = {
+        "upcoming_deliveries": upcoming_deliveries,
+        "overdue_deliveries": overdue_deliveries,
+        "total_notifications": len(upcoming_deliveries) + len(overdue_deliveries)
+    }
+    
     return templates.TemplateResponse(
         "admin/dashboard.html",
         {
             "request": request, 
             "current_user": current_user,
             "user_stats": user_stats,
-            "log_stats": log_stats
+            "log_stats": log_stats,
+            "delivery_notifications": delivery_notifications
         }
     )
 

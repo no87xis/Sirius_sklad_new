@@ -90,7 +90,7 @@
 
                 <!-- Кнопка добавления в корзину -->
                 <div class="flex justify-center">
-                    <button onclick="addToCart({{ product.id }})" 
+                    <button onclick="addToCart({{ product.id }}, this)" 
                             class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors text-sm sm:text-base">
                         <i class="fas fa-shopping-cart mr-2"></i>
                         В корзину
@@ -114,15 +114,26 @@
 </div>
 
 <script>
-function addToCart(productId) {
-    fetch('/shop/cart/add', {
+function addToCart(productId, buttonElement) {
+    // Показываем индикатор загрузки
+    const button = buttonElement || document.querySelector(`button[onclick*="${productId}"]`);
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Добавление...';
+    button.disabled = true;
+    
+    fetch('/api/shop/cart/add-form', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: `product_id=${productId}&quantity=1`
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             // Показать уведомление об успехе
@@ -140,7 +151,12 @@ function addToCart(productId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showNotification('Ошибка при добавлении товара', 'error');
+        showNotification('Ошибка при добавлении товара: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Восстанавливаем кнопку
+        button.innerHTML = originalText;
+        button.disabled = false;
     });
 }
 

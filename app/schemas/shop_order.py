@@ -4,6 +4,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from app.models.shop_order import ShopOrderStatus
 from app.schemas.shop_cart import ShopCartItemResponse
+from app.constants.delivery import DeliveryOption
 
 
 class ShopOrderBase(BaseModel):
@@ -11,6 +12,9 @@ class ShopOrderBase(BaseModel):
     customer_phone: str = Field(..., max_length=20)
     customer_city: Optional[str] = Field(None, max_length=100)
     payment_method_id: Optional[int] = Field(None, gt=0)
+    # Поля доставки
+    delivery_option: DeliveryOption = Field(..., description="Вариант доставки")
+    delivery_city_other: Optional[str] = Field(None, max_length=100, description="Город для 'Другая (по согласованию)'")
 
 
 class ShopOrderCreate(ShopOrderBase):
@@ -39,6 +43,10 @@ class ShopOrderResponse(ShopOrderBase):
     updated_at: datetime
     paid_at: Optional[datetime]
     completed_at: Optional[datetime]
+    # Поля доставки
+    delivery_cost_rub: Optional[int] = Field(None, description="Стоимость доставки")
+    delivery_display_name: Optional[str] = Field(None, description="Отображаемое название доставки")
+    total_with_delivery: Optional[Decimal] = Field(None, description="Общая стоимость с доставкой")
     
     class Config:
         from_attributes = True
@@ -49,6 +57,10 @@ class ShopOrderUpdate(BaseModel):
     status: Optional[ShopOrderStatus] = None
     payment_method_id: Optional[int] = Field(None, gt=0)
     expected_delivery_date: Optional[date] = None
+    # Поля доставки
+    delivery_option: Optional[DeliveryOption] = None
+    delivery_city_other: Optional[str] = Field(None, max_length=100)
+    delivery_cost_rub: Optional[int] = None
 
 
 class ShopOrderSearch(BaseModel):

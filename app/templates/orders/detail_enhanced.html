@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ #{{ order.id }} - Сириус{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-4 sm:py-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Заголовок -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+            <div class="flex items-center">
+                <a href="/orders" class="text-blue-600 hover:text-blue-800 mr-4 text-sm sm:text-base">
+                    ← Назад к заказам
+                </a>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Заказ #{{ order.id }}</h1>
+            </div>
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                <a href="/qr-scanner" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center justify-center text-sm">
+                    📷 QR-сканер
+                </a>
+                {% if current_user and current_user.role in ['admin', 'manager'] %}
+                    <a href="/orders/{{ order.id }}/edit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded text-sm">
+                        Редактировать
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ⚠️ ОБЯЗАТЕЛЬНОЕ ПОДТВЕРЖДЕНИЕ СТАТУСА -->
+        <div id="status_confirmation_modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="mt-3 text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">⚠️ Подтверждение статуса заказа</h3>
+                    <p class="text-sm text-gray-600 mb-6">
+                        Вы <strong>ОБЯЗАТЕЛЬНО</strong> должны выбрать статус выдачи заказа перед продолжением работы!
+                    </p>
+                    
+                    <form id="status_form" method="POST" action="/orders/{{ order.id }}/update-status" class="space-y-4">
+                        <div>
+                            <label for="new_status" class="block text-sm font-medium text-gray-700 mb-2">Новый статус заказа</label>
+                            <select name="new_status" id="new_status" required class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Выберите статус</option>
+                                <option value="paid_issued">✅ Выдано клиенту</option>
+                                <option value="paid_denied">❌ Не выдано (отказ)</option>
+                                <option value="in_transit">🚚 В пути (товар не приехал)</option>
+                                <option value="on_order">⏳ Под заказ (ожидание)</option>
+                            </select>
+                        </div>
+                        
+                        <div id="denial_reason_container" class="hidden">
+                            <label for="denial_reason" class="block text-sm font-medium text-gray-700 mb-2">Причина отказа в выдаче</label>
+                            <textarea name="denial_reason" id="denial_reason" rows="3" 
+                                      class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="Укажите причину, почему товар не был выдан клиенту..."></textarea>
+                        </div>
+                        
+                        <div class="flex space-x-3">
+                            <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                                Подтвердить статус
+                            </button>
+                            <button type="button" onclick="hideStatusModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                                Отмена
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Основная информация о заказе -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Левая колонка - основная информация -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Карточка заказа -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-gray-900">📋 Информация о заказе</h2>
+                        <div class="flex items-center space-x-2">
+                            {% if order.order_code %}
+                                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                                    Код: {{ order.order_code }}
+                                </span>
+                            {% endif %}
+                            <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
+                                #{{ order.id }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Дата создания</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Текущий статус</label>
+                            <div class="mt-1">
+                                {% set status_display = order.auto_status if hasattr(order, 'auto_status') else order.status %}
+                                {% if status_display == "in_transit" %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                        <i class="fas fa-truck mr-1"></i>В пути
+                                    </span>
+                                {% elif status_display == "on_order" %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-clock mr-1"></i>Под заказ
+                                    </span>
+                                {% elif status_display == "unpaid" %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-times-circle mr-1"></i>Не оплачен
+                                    </span>
+                                {% elif status_display == "courier_grozny" %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                                        <i class="fas fa-motorcycle mr-1"></i>Курьеру в Грозный
+                                    </span>
+                                {% elif status_display == "courier_mak" %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                                        <i class="fas fa-motorcycle mr-1"></i>Курьеру в Махачкалу
+                                    </span>
+                                {% elif status_display == "courier_khas" %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-pink-100 text-pink-800">
+                                        <i class="fas fa-motorcycle mr-1"></i>Курьеру в Хасавюрт
+                                    </span>
+                                {% elif status_display == "self_pickup" %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-store mr-1"></i>Ожидает выдачи
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                        <i class="fas fa-question mr-1"></i>{{ status_display }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if order.issued_at %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Дата выдачи</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.issued_at.strftime('%d.%m.%Y %H:%M:%S') }}</p>
+                        </div>
+                        {% endif %}
+                        {% if order.paid_at %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Дата оплаты</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.paid_at.strftime('%d.%m.%Y %H:%M:%S') }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Информация о клиенте -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">👤 Информация о клиенте</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Имя клиента</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.customer_name or 'Не указано' }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Номер телефона</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.phone }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Город</label>
+                            <p class="mt-1 text-sm text-gray-900">{{ order.client_city or 'Не указан' }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Способ доставки</label>
+                            <p class="mt-1 text-sm text-gray-900">
+                                {% if order.delivery_option %}
+                                    {{ order.delivery_display_name }}
+                                {% else %}
+                                    Не указано
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Информация о товаре -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">📦 Информация о товаре</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Название товара</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.product_name }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Количество</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.qty }} ед.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Цена за единицу</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ "%.2f"|format(order.unit_price_rub) }} ₽</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Общая стоимость</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium text-blue-600">{{ "%.2f"|format(order.qty * order.unit_price_rub) }} ₽</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Информация об оплате -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">💳 Информация об оплате</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Способ оплаты</label>
+                            <p class="mt-1 text-sm text-gray-900">
+                                {% if order.payment_method_id == 1 %}
+                                    Перевод по СБП +1%
+                                {% elif order.payment_method_id == 2 %}
+                                    Наличными на складе в Грозном
+                                {% elif order.payment_method_id == 3 %}
+                                    Наличными в кассу в Махачкале
+                                {% elif order.payment_method_id == 4 %}
+                                    Наличными в кассу в Назране
+                                {% elif order.payment_method_id == 5 %}
+                                    Наличными в кассу в Хасавюрте
+                                {% elif order.payment_method_id == 6 %}
+                                    Оплата по б/н на р/с ИП +7%
+                                {% elif order.payment_method_id == 7 %}
+                                    Наличным курьеру
+                                {% else %}
+                                    Не указано
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Статус оплаты</label>
+                            <div class="mt-1">
+                                {% if order.paid_amount and order.paid_amount > 0 %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>Оплачено
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-times-circle mr-1"></i>Не оплачено
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if order.paid_amount %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Сумма оплаты</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium text-green-600">{{ "%.2f"|format(order.paid_amount) }} ₽</p>
+                        </div>
+                        {% endif %}
+                        {% if order.delivery_cost_rub %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Стоимость доставки</label>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.delivery_cost_rub }} ₽</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- QR-код заказа -->
+                {% if order.qr_payload %}
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">📱 QR-код заказа</h2>
+                    <div class="text-center">
+                        <div class="bg-gray-100 p-4 rounded-lg inline-block">
+                            <img src="/api/qr/{{ order.qr_payload }}" alt="QR-код заказа" class="w-32 h-32">
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Отсканируйте для быстрого доступа к заказу</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Правая колонка - действия и статус -->
+            <div class="space-y-6">
+                <!-- Действия с заказом -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">⚡ Действия с заказом</h2>
+                    
+                    <!-- Для товаров в пути - ничего не делаем -->
+                    {% if order.auto_status in ['in_transit', 'on_order'] %}
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="text-center">
+                                <i class="fas fa-info-circle text-blue-500 text-2xl mb-2"></i>
+                                <p class="text-blue-700 text-sm">
+                                    <strong>Товар в пути</strong><br>
+                                    Никаких действий не требуется
+                                </p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Для товаров в наличии - обязательное подтверждение статуса -->
+                        <div class="space-y-3">
+                            <button onclick="showStatusModal()" 
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                Подтвердить статус выдачи
+                            </button>
+                            
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <div class="flex items-start">
+                                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-2"></i>
+                                    <div class="text-sm text-yellow-700">
+                                        <strong>Важно:</strong> Статус должен быть подтвержден при каждой работе с заказом
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Быстрые действия -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">🚀 Быстрые действия</h2>
+                    <div class="space-y-3">
+                        <a href="/qr-scanner" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors inline-block text-center">
+                            <i class="fas fa-qrcode mr-2"></i>
+                            Открыть QR-сканер
+                        </a>
+                        
+                        <a href="/orders/{{ order.id }}/edit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors inline-block text-center">
+                            <i class="fas fa-edit mr-2"></i>
+                            Редактировать заказ
+                        </a>
+                        
+                        <a href="/orders" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors inline-block text-center">
+                            <i class="fas fa-list mr-2"></i>
+                            К списку заказов
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Статистика заказа -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">📊 Статистика заказа</h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Создан:</span>
+                            <span class="text-sm font-medium">{{ order.created_at.strftime('%d.%m.%Y') }}</span>
+                        </div>
+                        {% if order.issued_at %}
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Выдан:</span>
+                            <span class="text-sm font-medium">{{ order.issued_at.strftime('%d.%m.%Y') }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Сумма:</span>
+                            <span class="text-sm font-medium text-blue-600">{{ "%.2f"|format(order.qty * order.unit_price_rub) }} ₽</span>
+                        </div>
+                        {% if order.delivery_cost_rub %}
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Доставка:</span>
+                            <span class="text-sm font-medium">{{ order.delivery_cost_rub }} ₽</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex justify-between border-t border-gray-200 pt-2">
+                            <span class="text-sm font-medium">Итого:</span>
+                            <span class="text-sm font-medium text-green-600">{{ "%.2f"|format(order.total_with_delivery) }} ₽</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Показ модального окна подтверждения статуса
+function showStatusModal() {
+    document.getElementById('status_confirmation_modal').classList.remove('hidden');
+}
+
+// Скрытие модального окна
+function hideStatusModal() {
+    document.getElementById('status_confirmation_modal').classList.add('hidden');
+}
+
+// Обработка изменения статуса
+document.getElementById('new_status').addEventListener('change', function() {
+    const denialReasonContainer = document.getElementById('denial_reason_container');
+    const denialReasonInput = document.getElementById('denial_reason');
+    
+    if (this.value === 'paid_denied') {
+        denialReasonContainer.classList.remove('hidden');
+        denialReasonInput.required = true;
+    } else {
+        denialReasonContainer.classList.add('hidden');
+        denialReasonInput.required = false;
+        denialReasonInput.value = '';
+    }
+});
+
+// Предотвращение закрытия страницы без подтверждения статуса
+window.addEventListener('beforeunload', function(e) {
+    // Проверяем, нужно ли подтверждение статуса
+    const needsConfirmation = {{ 'true' if order.auto_status not in ['in_transit', 'on_order'] else 'false' }};
+    
+    if (needsConfirmation) {
+        e.preventDefault();
+        e.returnValue = 'Вы не подтвердили статус заказа. Страница будет закрыта без сохранения изменений.';
+        return e.returnValue;
+    }
+});
+
+// Показываем модальное окно при загрузке страницы, если нужно подтверждение
+document.addEventListener('DOMContentLoaded', function() {
+    const needsConfirmation = {{ 'true' if order.auto_status not in ['in_transit', 'on_order'] else 'false' }};
+    
+    if (needsConfirmation) {
+        // Показываем предупреждение через 2 секунды
+        setTimeout(() => {
+            showStatusModal();
+        }, 2000);
+    }
+});
+</script>
+{% endblock %}

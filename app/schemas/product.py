@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from decimal import Decimal
 from datetime import datetime
-from ..constants import ProductStatus, DEFAULT_STATUS
+from ..product_constants import ProductStatus, DEFAULT_STATUS
 
 
 class ProductBase(BaseModel):

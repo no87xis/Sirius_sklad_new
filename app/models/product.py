@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Numeric, DateTime, Date
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from ..db import Base
-from ..constants import DEFAULT_STATUS
+from ..product_constants import ProductStatus, DEFAULT_STATUS
 
 
 class Product(Base):
@@ -32,6 +32,7 @@ class Product(Base):
     supplies = relationship("Supply", back_populates="product")
     orders = relationship("Order", back_populates="product")
     photos = relationship("ProductPhoto", back_populates="product", cascade="all, delete-orphan")
+    batches = relationship("ProductBatch", back_populates="product", cascade="all, delete-orphan")
     
     @property
     def main_photo(self):
@@ -55,3 +56,26 @@ class Product(Base):
             return f"Под заказ (ожидается {self.expected_date.strftime('%d.%m.%Y')})"
         else:
             return "Под заказ"
+    
+    @property
+    def active_batches(self):
+        """Возвращает активные партии товара"""
+        return [batch for batch in self.batches if batch.status in ["in_transit", "arrived"]]
+    
+    @property
+    def preorder_price(self):
+        """Возвращает цену предзаказа (самую низкую из доступных партий)"""
+        available_batches = [batch for batch in self.batches if batch.is_available_for_preorder]
+        if available_batches:
+            return min(batch.preorder_price_rub for batch in available_batches if batch.preorder_price_rub)
+        return None
+    
+    @property
+    def total_in_transit(self):
+        """Возвращает общее количество товара в пути"""
+        return sum(batch.quantity for batch in self.batches if batch.status == "in_transit")
+    
+    @property
+    def total_on_order(self):
+        """Возвращает общее количество товара под заказ"""
+        return sum(batch.quantity for batch in self.batches if batch.status == "in_transit" and batch.preorder_price_rub)

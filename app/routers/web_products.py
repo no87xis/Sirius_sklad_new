@@ -79,7 +79,7 @@ async def create_product_post(
             except ValueError:
                 pass
         
-        from ..constants import ProductStatus, DEFAULT_STATUS
+        from ..product_constants import ProductStatus, DEFAULT_STATUS
         
         # Проверяем и устанавливаем статус
         if availability_status and availability_status in [ProductStatus.IN_STOCK, ProductStatus.ON_ORDER, ProductStatus.IN_TRANSIT, ProductStatus.OUT_OF_STOCK]:

@@ -1,0 +1,216 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Уведомления о доставке{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div class="mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">📦 Уведомления о доставке</h1>
+        <p class="mt-2 text-sm sm:text-base text-gray-600">
+            Товары с приближающейся или просроченной датой доставки
+        </p>
+    </div>
+
+    <!-- Просроченные доставки -->
+    {% if overdue_deliveries %}
+    <div class="mb-8">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <h2 class="text-lg font-semibold text-red-800 mb-2">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Просроченные доставки ({{ overdue_deliveries|length }})
+            </h2>
+            <p class="text-red-700 text-sm">Товары, которые должны были прибыть, но не прибыли</p>
+        </div>
+
+        <div class="grid gap-4">
+            {% for delivery in overdue_deliveries %}
+            <div class="bg-white border border-red-200 rounded-lg p-4 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-900">{{ delivery.product_name }}</h3>
+                        <div class="mt-1 text-sm text-gray-600">
+                            <span class="font-medium">Партия:</span> {{ delivery.batch_code }} | 
+                            <span class="font-medium">Количество:</span> {{ delivery.quantity }} шт. |
+                            <span class="font-medium">Просрочено на:</span> 
+                            <span class="text-red-600 font-semibold">{{ delivery.days_overdue }} дн.</span>
+                        </div>
+                        <div class="mt-1 text-sm text-gray-500">
+                            <span class="font-medium">Ожидалось:</span> {{ delivery.expected_arrival_date.strftime('%d.%m.%Y') }}
+                        </div>
+                        {% if delivery.preorder_price %}
+                        <div class="mt-1 text-sm text-gray-500">
+                            <span class="font-medium">Цена предзаказа:</span> {{ "%.2f"|format(delivery.preorder_price) }} ₽
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-3 sm:mt-0 sm:ml-4 flex flex-col sm:flex-row gap-2">
+                        <button onclick="showUpdateDateModal({{ delivery.batch_id }}, '{{ delivery.expected_arrival_date.strftime('%Y-%m-%d') }}')"
+                                class="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            Обновить дату
+                        </button>
+                        <button onclick="showMarkArrivedModal({{ delivery.batch_id }}, '{{ delivery.product_name }}')"
+                                class="px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors">
+                            <i class="fas fa-check mr-1"></i>
+                            Отметить прибывшим
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Приближающиеся доставки -->
+    {% if upcoming_deliveries %}
+    <div class="mb-8">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <h2 class="text-lg font-semibold text-yellow-800 mb-2">
+                <i class="fas fa-clock mr-2"></i>
+                Приближающиеся доставки ({{ upcoming_deliveries|length }})
+            </h2>
+            <p class="text-yellow-700 text-sm">Товары, которые должны прибыть в ближайшие 5 дней</p>
+        </div>
+
+        <div class="grid gap-4">
+            {% for delivery in upcoming_deliveries %}
+            <div class="bg-white border {% if delivery.is_urgent %}border-red-200{% else %}border-yellow-200{% endif %} rounded-lg p-4 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-900">{{ delivery.product_name }}</h3>
+                        <div class="mt-1 text-sm text-gray-600">
+                            <span class="font-medium">Партия:</span> {{ delivery.batch_code }} | 
+                            <span class="font-medium">Количество:</span> {{ delivery.quantity }} шт. |
+                            <span class="font-medium">До доставки:</span> 
+                            <span class="{% if delivery.is_urgent %}text-red-600 font-semibold{% else %}text-yellow-600 font-semibold{% endif %}">
+                                {{ delivery.days_until_delivery }} дн.
+                            </span>
+                        </div>
+                        <div class="mt-1 text-sm text-gray-500">
+                            <span class="font-medium">Ожидается:</span> {{ delivery.expected_arrival_date.strftime('%d.%m.%Y') }}
+                        </div>
+                        {% if delivery.preorder_price %}
+                        <div class="mt-1 text-sm text-gray-500">
+                            <span class="font-medium">Цена предзаказа:</span> {{ "%.2f"|format(delivery.preorder_price) }} ₽
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-3 sm:mt-0 sm:ml-4 flex flex-col sm:flex-row gap-2">
+                        <button onclick="showUpdateDateModal({{ delivery.batch_id }}, '{{ delivery.expected_arrival_date.strftime('%Y-%m-%d') }}')"
+                                class="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            Обновить дату
+                        </button>
+                        <button onclick="showMarkArrivedModal({{ delivery.batch_id }}, '{{ delivery.product_name }}')"
+                                class="px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors">
+                            <i class="fas fa-check mr-1"></i>
+                            Отметить прибывшим
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Пустое состояние -->
+    {% if not upcoming_deliveries and not overdue_deliveries %}
+    <div class="text-center py-12">
+        <div class="mx-auto h-12 w-12 text-gray-400 mb-4">
+            <i class="fas fa-check-circle text-4xl"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Все доставки в порядке</h3>
+        <p class="text-gray-500">Нет товаров с приближающейся или просроченной датой доставки</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Модальное окно обновления даты -->
+<div id="updateDateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Обновить дату доставки</h3>
+            <form id="updateDateForm" method="POST" action="/admin/delivery-notifications/update-date" class="space-y-4">
+                <input type="hidden" name="batch_id" id="update_batch_id">
+                <div>
+                    <label for="new_date" class="block text-sm font-medium text-gray-700 mb-2">Новая дата доставки</label>
+                    <input type="date" name="new_date" id="new_date" required 
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex space-x-3">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                        Обновить
+                    </button>
+                    <button type="button" onclick="hideUpdateDateModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                        Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно отметки прибывшим -->
+<div id="markArrivedModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Отметить как прибывший</h3>
+            <p class="text-sm text-gray-600 mb-4" id="markArrivedProductName"></p>
+            <form id="markArrivedForm" method="POST" action="/admin/delivery-notifications/mark-arrived" class="space-y-4">
+                <input type="hidden" name="batch_id" id="mark_batch_id">
+                <div>
+                    <label for="final_price" class="block text-sm font-medium text-gray-700 mb-2">Финальная цена (опционально)</label>
+                    <input type="number" name="final_price" id="final_price" step="0.01" min="0"
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Введите цену">
+                </div>
+                <div class="flex space-x-3">
+                    <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                        Отметить прибывшим
+                    </button>
+                    <button type="button" onclick="hideMarkArrivedModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                        Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showUpdateDateModal(batchId, currentDate) {
+    document.getElementById('update_batch_id').value = batchId;
+    document.getElementById('new_date').value = currentDate;
+    document.getElementById('updateDateModal').classList.remove('hidden');
+}
+
+function hideUpdateDateModal() {
+    document.getElementById('updateDateModal').classList.add('hidden');
+}
+
+function showMarkArrivedModal(batchId, productName) {
+    document.getElementById('mark_batch_id').value = batchId;
+    document.getElementById('markArrivedProductName').textContent = `Товар: ${productName}`;
+    document.getElementById('markArrivedModal').classList.remove('hidden');
+}
+
+function hideMarkArrivedModal() {
+    document.getElementById('markArrivedModal').classList.add('hidden');
+}
+
+// Закрытие модальных окон по клику вне их
+window.onclick = function(event) {
+    const updateModal = document.getElementById('updateDateModal');
+    const markModal = document.getElementById('markArrivedModal');
+    
+    if (event.target === updateModal) {
+        hideUpdateDateModal();
+    }
+    if (event.target === markModal) {
+        hideMarkArrivedModal();
+    }
+}
+</script>
+{% endblock %}

@@ -4,6 +4,35 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-4 sm:py-8">
+    <!-- Уведомления о доставке -->
+    {% if delivery_notifications.total_notifications > 0 %}
+    <div id="deliveryNotification" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">
+                        Внимание! Есть товары с приближающейся доставкой
+                    </h3>
+                    <p class="text-sm text-yellow-700">
+                        {{ delivery_notifications.total_notifications }} товаров требуют внимания
+                    </p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <a href="/admin/delivery-notifications" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm font-medium">
+                    Посмотреть
+                </a>
+                <button onclick="hideDeliveryNotification()" class="text-yellow-600 hover:text-yellow-800">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Заголовок и кнопки -->
     <div class="mb-6 sm:mb-8">
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
@@ -12,6 +41,9 @@
                 <p class="mt-2 text-gray-600 text-sm sm:text-base">Управление системой и мониторинг</p>
             </div>
             <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                <a href="/admin/delivery-notifications" class="w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded inline-flex items-center justify-center text-sm">
+                    📦 Доставка
+                </a>
                 <a href="/qr-scanner" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center justify-center text-sm">
                     📷 QR-сканер
                 </a>
@@ -199,4 +231,29 @@
         </div>
     </div>
 </div>
+
+<script>
+function hideDeliveryNotification() {
+    const notification = document.getElementById('deliveryNotification');
+    if (notification) {
+        notification.style.display = 'none';
+        // Сохраняем в localStorage, что уведомление было скрыто сегодня
+        const today = new Date().toDateString();
+        localStorage.setItem('deliveryNotificationHidden', today);
+    }
+}
+
+// Проверяем, было ли уведомление скрыто сегодня
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toDateString();
+    const hiddenDate = localStorage.getItem('deliveryNotificationHidden');
+    
+    if (hiddenDate === today) {
+        const notification = document.getElementById('deliveryNotification');
+        if (notification) {
+            notification.style.display = 'none';
+        }
+    }
+});
+</script>
 {% endblock %}

@@ -34,6 +34,11 @@ class ShopOrderService:
             # Определяем статус заказа (не оплачен, пока менеджер не изменит)
             status = OrderStatus.PAID_NOT_ISSUED
             
+            # Вычисляем стоимость доставки
+            delivery_cost = Decimal('0')
+            if order_data.delivery_option and order_data.delivery_option.startswith('COURIER_') and order_data.delivery_option != 'COURIER_OTHER':
+                delivery_cost = Decimal('300') * cart_item.quantity
+            
             # Создаём заказ в основной таблице orders
             order = Order(
                 order_code=order_code,
@@ -50,7 +55,11 @@ class ShopOrderService:
                 source="shop",  # Указываем источник - магазин
                 payment_method_id=order_data.payment_method_id,
                 payment_method=PaymentMethodEnum.UNPAID,  # Явно устанавливаем статус оплаты
-                created_at=datetime.now(timezone.utc)  # Явно устанавливаем дату создания
+                created_at=datetime.now(timezone.utc),  # Явно устанавливаем дату создания
+                # Добавляем данные о доставке
+                delivery_option=order_data.delivery_option.value if order_data.delivery_option else None,
+                delivery_city_other=order_data.delivery_city_other,
+                delivery_cost_rub=delivery_cost
             )
             
             db.add(order)

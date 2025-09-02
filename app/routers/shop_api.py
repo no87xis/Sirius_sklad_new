@@ -38,6 +38,36 @@ async def add_to_cart(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/cart/add-form", response_model=dict)
+async def add_to_cart_form(
+    request: Request,
+    product_id: int = Form(...),
+    quantity: int = Form(1),
+    db: Session = Depends(get_db)
+):
+    """Добавляет товар в корзину через form data (для JavaScript)"""
+    try:
+        session_id = get_session_id(request)
+        
+        # Проверяем, что товар существует
+        from app.models.product import Product
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            return {"success": False, "message": "Товар не найден"}
+        
+        # Проверяем доступность товара
+        if product.quantity <= 0 and product.availability_status not in ['IN_TRANSIT', 'ON_ORDER']:
+            return {"success": False, "message": f"Товар '{product.name}' недоступен (остаток: {product.quantity})"}
+        
+        from app.schemas.shop_cart import ShopCartCreate
+        cart_data = ShopCartCreate(session_id=session_id, product_id=product_id, quantity=quantity)
+        cart_item = ShopCartService.add_to_cart(db, cart_data)
+        return {"success": True, "message": "Товар добавлен в корзину", "cart_item_id": cart_item.id}
+    except Exception as e:
+        print(f"Error adding to cart: {e}")  # Логируем ошибку
+        return {"success": False, "message": f"Ошибка сервера: {str(e)}"}
+
+
 @router.put("/cart/update/{product_id}")
 async def update_cart_item(
     product_id: int,

@@ -69,11 +69,23 @@
                         <div class="flex items-center space-x-2">
                             <form method="POST" action="/shop/cart/update" class="flex items-center space-x-2">
                                 <input type="hidden" name="product_id" value="{{ item.product_id }}">
-                                <input type="number" 
-                                       name="quantity" 
-                                       value="{{ item.quantity }}" 
-                                       min="1" 
-                                       class="w-20 border border-gray-300 rounded px-3 py-2 text-sm">
+                                <div class="flex items-center border border-gray-300 rounded">
+                                    <button type="button" 
+                                            onclick="changeQuantity(this, -1)" 
+                                            class="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 border-r border-gray-300">
+                                        <i class="fas fa-minus text-sm"></i>
+                                    </button>
+                                    <input type="number" 
+                                           name="quantity" 
+                                           value="{{ item.quantity }}" 
+                                           min="1" 
+                                           class="w-16 text-center border-0 focus:ring-0 focus:border-0 text-sm">
+                                    <button type="button" 
+                                            onclick="changeQuantity(this, 1)" 
+                                            class="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 border-l border-gray-300">
+                                        <i class="fas fa-plus text-sm"></i>
+                                    </button>
+                                </div>
                                 <button type="submit" 
                                         class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm">
                                     <i class="fas fa-sync-alt"></i>
@@ -151,11 +163,23 @@
                     <div class="flex items-center space-x-2">
                         <form method="POST" action="/shop/cart/update" class="flex items-center space-x-2">
                             <input type="hidden" name="product_id" value="{{ item.product_id }}">
-                            <input type="number" 
-                                   name="quantity" 
-                                   value="{{ item.quantity }}" 
-                                   min="1" 
-                                   class="w-20 border border-gray-300 rounded px-3 py-2 text-sm">
+                            <div class="flex items-center border border-gray-300 rounded">
+                                <button type="button" 
+                                        onclick="changeQuantity(this, -1)" 
+                                        class="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 border-r border-gray-300">
+                                    <i class="fas fa-minus text-sm"></i>
+                                </button>
+                                <input type="number" 
+                                       name="quantity" 
+                                       value="{{ item.quantity }}" 
+                                       min="1" 
+                                       class="w-16 text-center border-0 focus:ring-0 focus:border-0 text-sm">
+                                <button type="button" 
+                                        onclick="changeQuantity(this, 1)" 
+                                        class="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 border-l border-gray-300">
+                                    <i class="fas fa-plus text-sm"></i>
+                                </button>
+                            </div>
                             <button type="submit" 
                                     class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm">
                                 <i class="fas fa-sync-alt"></i>
@@ -232,4 +256,31 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+function changeQuantity(button, change) {
+    const input = button.parentElement.querySelector('input[name="quantity"]');
+    let currentValue = parseInt(input.value) || 1;
+    let newValue = currentValue + change;
+    
+    // Проверяем минимальное значение
+    if (newValue < 1) {
+        newValue = 1;
+    }
+    
+    input.value = newValue;
+}
+
+// Автоматическое обновление при изменении количества
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInputs = document.querySelectorAll('input[name="quantity"]');
+    quantityInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.value < 1) {
+                this.value = 1;
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
