@@ -117,8 +117,7 @@ async def create_product_post(
                 )
             except Exception as photo_error:
                 # Логируем ошибку, но не прерываем создание товара
-                print(f"Ошибка загрузки фото {photos.filename}: {photo_error}")
-                # Можно также добавить flash-сообщение об ошибке
+                pass
         
         return RedirectResponse(
             url="/products?success=Товар успешно создан",
@@ -226,9 +225,6 @@ async def edit_product_page(
     current_user = Depends(require_admin_or_manager())
 ):
     """Страница редактирования товара"""
-    # DEBUG: Тестируем запись в файл
-    with open("debug_page_load.txt", "w", encoding="utf-8") as f:
-        f.write(f"Страница редактирования загружена для товара {product_id}\n")
     
     product = get_product(db, product_id)
     if not product:
@@ -322,7 +318,7 @@ async def update_product_post(
                 )
             except Exception as photo_error:
                 # Логируем ошибку, но не прерываем обновление товара
-                print(f"Ошибка загрузки фото {new_photos.filename}: {photo_error}")
+                pass
         
         # Проверяем финальный статус
         final_product = get_product(db, product_id)

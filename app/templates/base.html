@@ -52,6 +52,22 @@
                         {% endif %}
                     </div>
                 </div>
+                
+                <!-- Мобильная кнопка меню -->
+                <div class="flex items-center sm:hidden">
+                    <button type="button" class="mobile-menu-button inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sirius-blue" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Открыть главное меню</span>
+                        <!-- Иконка меню -->
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <!-- Иконка закрытия -->
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
                 <div class="hidden sm:ml-6 sm:flex sm:items-center">
                     {% if current_user %}
                     <div class="ml-3 relative">
@@ -80,7 +96,7 @@
         </div>
         
         <!-- Мобильное меню (скрыто по умолчанию) -->
-        <div class="mobile-menu hidden sm:hidden">
+        <div class="mobile-menu hidden sm:hidden" id="mobile-menu">
             <div class="pt-2 pb-3 space-y-1">
                 <a href="/" class="mobile-menu-link block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300">
                     Главная
@@ -149,7 +165,9 @@
                     </svg>
                 </div>
                 <div class="ml-3">
-                    <p class="text-sm text-green-800">{{ request.query_params.get('success') }}</p>
+                    <p class="text-sm font-medium text-green-800">
+                        {{ request.query_params.get('success') }}
+                    </p>
                 </div>
             </div>
         </div>
@@ -160,24 +178,27 @@
             <div class="flex">
                 <div class="flex-shrink-0">
                     <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
                 </div>
                 <div class="ml-3">
-                    <p class="text-sm text-red-800">{{ request.query_params.get('error') }}</p>
+                    <p class="text-sm font-medium text-red-800">
+                        {{ request.query_params.get('error') }}
+                    </p>
                 </div>
             </div>
         </div>
         {% endif %}
 
+        <!-- Контент страницы -->
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Футер -->
-    <footer class="bg-white border-t border-gray-200 mt-12">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <div class="text-center text-sm text-gray-500">
-                <p>&copy; 2024 Система учёта склада «Сириус». Все права защищены.</p>
+    <!-- Подвал -->
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-gray-500 text-sm">
+                <p>&copy; 2024 SIRIUS GROUP. Все права защищены.</p>
             </div>
         </div>
     </footer>
@@ -186,7 +207,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const mobileMenuButton = document.querySelector('.mobile-menu-button');
-            const mobileMenu = document.querySelector('.mobile-menu');
+            const mobileMenu = document.querySelector('#mobile-menu');
             const menuIcon = mobileMenuButton.querySelector('svg:first-child');
             const closeIcon = mobileMenuButton.querySelector('svg:last-child');
     

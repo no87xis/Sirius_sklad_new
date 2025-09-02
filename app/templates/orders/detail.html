@@ -3,150 +3,226 @@
 {% block title %}Заказ #{{ order.id }} - Сириус{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-4 sm:py-8">
     <div class="max-w-4xl mx-auto">
-        <div class="flex items-center justify-between mb-6">
+        <!-- Заголовок -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
             <div class="flex items-center">
-                <a href="/orders" class="text-blue-600 hover:text-blue-800 mr-4">
+                <a href="/orders" class="text-blue-600 hover:text-blue-800 mr-4 text-sm sm:text-base">
                     ← Назад к заказам
                 </a>
-                <h1 class="text-3xl font-bold text-gray-900">Заказ #{{ order.id }}</h1>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Заказ #{{ order.id }}</h1>
             </div>
-            <div class="flex space-x-2">
-                <a href="/qr-scanner" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                <a href="/qr-scanner" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center justify-center text-sm">
                     📷 QR-сканер
                 </a>
                 {% if current_user and current_user.role in ['admin', 'manager'] %}
-                    <a href="/orders/{{ order.id }}/edit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
+                    <a href="/orders/{{ order.id }}/edit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded text-sm">
                         Редактировать
                     </a>
                 {% endif %}
             </div>
         </div>
 
+        <!-- БЛОКИРОВКА ДЕЙСТВИЙ - пока не выбран статус -->
+        {% if order.status == "paid_not_issued" %}
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">
+                        ⚠️ ВНИМАНИЕ: Заказ ожидает выдачи на складе
+                    </h3>
+                    <p class="text-sm text-yellow-700 mt-1">
+                        Вы <strong>ОБЯЗАТЕЛЬНО</strong> должны выбрать статус выдачи перед продолжением работы!
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Основная информация -->
             <div class="lg:col-span-2 space-y-6">
                 <!-- Информация о заказе -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Информация о заказе</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Информация о заказе</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Номер заказа</label>
-                            <p class="mt-1 text-sm text-gray-900">#{{ order.id }}</p>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">#{{ order.id }}</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Дата создания</label>
-                            <p class="mt-1 text-sm text-gray-900">{{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+                            <p class="mt-1 text-sm text-gray-900">{{ order.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Статус</label>
                             <div class="mt-1">
                                 {% if order.status == "paid_not_issued" %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        Ожидает выдачи
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                        ⏳ Ожидает выдачи на складе
                                     </span>
                                 {% elif order.status == "paid_issued" %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        Выдано
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                        ✅ Выдано на складе
                                     </span>
                                 {% elif order.status == "paid_denied" %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        Отменено
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                        ❌ Не выдано
                                     </span>
                                 {% endif %}
                             </div>
                         </div>
                         {% if order.issued_at %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Дата выдачи</label>
-                            <p class="mt-1 text-sm text-gray-900">{{ order.issued_at.strftime('%d.%m.%Y %H:%M') }}</p>
+                            <label class="block text-sm font-medium text-gray-700">Дата и время выдачи</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">{{ order.issued_at.strftime('%d.%m.%Y %H:%M:%S') }}</p>
                         </div>
                         {% endif %}
                     </div>
                 </div>
 
                 <!-- Информация о клиенте -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Информация о клиенте</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Информация о клиенте</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Имя клиента</label>
-                            <p class="mt-1 text-sm text-gray-900">{{ order.customer_name or 'Не указано' }}</p>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.customer_name or 'Не указано' }}</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Номер телефона</label>
-                            <p class="mt-1 text-sm text-gray-900">{{ order.phone }}</p>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">{{ order.phone }}</p>
                         </div>
+                        {% if order.client_city %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Город</label>
+                            <p class="mt-1 text-sm text-gray-900">{{ order.client_city }}</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
                 <!-- Информация о товаре -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Информация о товаре</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Информация о товаре</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Товар</label>
-                            <p class="mt-1 text-sm text-gray-900">{{ order.product_name }}</p>
+                            <p class="mt-1 text-sm text-gray-900 font-medium">{{ order.product_name }}</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Количество</label>
-                            <p class="mt-1 text-sm text-gray-900">{{ order.qty }}</p>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">{{ order.qty }} шт.</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Цена за единицу</label>
-                            <p class="mt-1 text-sm text-gray-900">{{ "%.2f"|format(order.unit_price_rub) }} ₽</p>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">{{ "%.2f"|format(order.unit_price_rub) }} ₽</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Общая сумма</label>
-                            <p class="mt-1 text-lg font-semibold text-blue-600">{{ "%.2f"|format(order.total_amount) }} ₽</p>
+                            <p class="mt-1 text-lg font-semibold text-blue-600 font-mono">{{ "%.2f"|format(order.total_amount) }} ₽</p>
                         </div>
                     </div>
                 </div>
+
+                <!-- Дополнительная информация -->
+                {% if order.payment_method or order.payment_note %}
+                <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Информация об оплате</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {% if order.payment_method %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Способ оплаты</label>
+                            <p class="mt-1 text-sm text-gray-900">{{ order.payment_method.value if hasattr(order.payment_method, 'value') else order.payment_method }}</p>
+                        </div>
+                        {% endif %}
+                        {% if order.payment_note %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Примечание к оплате</label>
+                            <p class="mt-1 text-sm text-gray-900">{{ order.payment_note }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Боковая панель -->
             <div class="space-y-6">
-                <!-- Изменение статуса -->
-                {% if current_user and current_user.role in ['admin', 'manager'] %}
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Изменить статус</h3>
-                    <form method="POST" action="/orders/{{ order.id }}/status">
+                <!-- ОБЯЗАТЕЛЬНОЕ ИЗМЕНЕНИЕ СТАТУСА -->
+                {% if current_user and current_user.role in ['admin', 'manager'] and order.status == "paid_not_issued" %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-red-800 mb-4">🚨 ОБЯЗАТЕЛЬНО ИЗМЕНИТЬ СТАТУС!</h3>
+                    <p class="text-sm text-red-700 mb-4">
+                        Заказ готов к выдаче. Выберите один из вариантов:
+                    </p>
+                    
+                    <form method="POST" action="/orders/{{ order.id }}/status" class="space-y-3">
                         <div class="space-y-3">
-                            <div>
-                                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Новый статус</label>
-                                <select name="status" id="status" required
-                                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="paid_not_issued" {% if order.status == "paid_not_issued" %}selected{% endif %}>
-                                        Ожидает выдачи
-                                    </option>
-                                    <option value="paid_issued" {% if order.status == "paid_issued" %}selected{% endif %}>
-                                        Выдано
-                                    </option>
-                                    <option value="paid_denied" {% if order.status == "paid_denied" %}selected{% endif %}>
-                                        Отменено
-                                    </option>
-                                </select>
-                            </div>
-                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                                Обновить статус
+                            <!-- Кнопка "Выдано" -->
+                            <button type="submit" name="status" value="paid_issued" 
+                                    class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-base transition-colors">
+                                ✅ ВЫДАНО НА СКЛАДЕ
                             </button>
+                            
+                            <!-- Кнопка "Не выдано" -->
+                            <button type="submit" name="status" value="paid_denied" 
+                                    class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg text-base transition-colors">
+                                ❌ НЕ ВЫДАНО
+                            </button>
+                        </div>
+                        
+                        <div class="mt-4 p-3 bg-white rounded border">
+                            <p class="text-xs text-gray-600 text-center">
+                                <strong>Время изменения статуса будет записано автоматически</strong><br>
+                                до секунды
+                            </p>
                         </div>
                     </form>
                 </div>
                 {% endif %}
 
+                <!-- Статус уже изменен -->
+                {% if current_user and current_user.role in ['admin', 'manager'] and order.status != "paid_not_issued" %}
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-green-800 mb-4">✅ Статус заказа изменен</h3>
+                    <p class="text-sm text-green-700 mb-4">
+                        {% if order.status == "paid_issued" %}
+                            Заказ успешно выдан на складе
+                        {% else %}
+                            Заказ отмечен как не выданный
+                        {% endif %}
+                    </p>
+                    
+                    {% if order.issued_at %}
+                    <div class="bg-white p-3 rounded border">
+                        <p class="text-sm text-gray-700">
+                            <strong>Время изменения:</strong><br>
+                            <span class="font-mono">{{ order.issued_at.strftime('%d.%m.%Y %H:%M:%S') }}</span>
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 <!-- Действия -->
-                <div class="bg-white rounded-lg shadow p-6">
+                <div class="bg-white rounded-lg shadow p-4 sm:p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Действия</h3>
                     <div class="space-y-2">
-                        <a href="/orders" class="block w-full text-center bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                        <a href="/orders" class="block w-full text-center bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded text-sm">
                             К списку заказов
                         </a>
                         {% if current_user and current_user.role in ['admin', 'manager'] %}
                             <form method="POST" action="/orders/{{ order.id }}/delete" class="mt-2" 
                                   onsubmit="return confirm('Вы уверены, что хотите удалить этот заказ?')">
-                                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm">
                                     Удалить заказ
                                 </button>
                             </form>
@@ -155,7 +231,7 @@
                 </div>
 
                 <!-- Информация о пользователе -->
-                <div class="bg-white rounded-lg shadow p-6">
+                <div class="bg-white rounded-lg shadow p-4 sm:p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Создал заказ</h3>
                     <p class="text-sm text-gray-900">{{ order.user_id }}</p>
                 </div>
@@ -163,4 +239,35 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript для блокировки действий -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем, нужно ли заблокировать действия
+    const orderStatus = '{{ order.status }}';
+    
+    if (orderStatus === 'paid_not_issued') {
+        // Блокируем все ссылки и кнопки кроме изменения статуса
+        const allLinks = document.querySelectorAll('a:not([href*="/orders/' + {{ order.id }} + '/status"])');
+        const allButtons = document.querySelectorAll('button:not([name="status"])');
+        
+        allLinks.forEach(link => {
+            link.style.pointerEvents = 'none';
+            link.style.opacity = '0.5';
+            link.title = 'Сначала измените статус заказа';
+        });
+        
+        allButtons.forEach(button => {
+            if (!button.name || button.name !== 'status') {
+                button.disabled = true;
+                button.style.opacity = '0.5';
+                button.title = 'Сначала измените статус заказа';
+            }
+        });
+        
+        // Показываем предупреждение
+        console.log('⚠️ Действия заблокированы до изменения статуса заказа');
+    }
+});
+</script>
 {% endblock %}

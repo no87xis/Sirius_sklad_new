@@ -20,13 +20,9 @@ router = APIRouter(prefix="/shop", tags=["shop"])
 def get_session_id(request: Request) -> str:
     """Получает или создаёт ID сессии для корзины"""
     session_id = request.session.get("cart_session_id")
-    print(f"DEBUG: get_session_id called, existing session_id: {session_id}")
     if not session_id:
         session_id = str(uuid.uuid4())
         request.session["cart_session_id"] = session_id
-        print(f"DEBUG: Created new session_id: {session_id}")
-    else:
-        print(f"DEBUG: Using existing session_id: {session_id}")
     return session_id
 
 
@@ -82,11 +78,6 @@ async def shop_cart(
     session_id = get_session_id(request)
     cart_summary = ShopCartService.get_cart_summary(db, session_id)
     
-    print(f"DEBUG: Cart route - session_id: {session_id}")
-    print(f"DEBUG: Cart route - cart_summary: {cart_summary}")
-    print(f"DEBUG: Cart route - cart_summary.items: {cart_summary.items if cart_summary else 'None'}")
-    print(f"DEBUG: Cart route - cart_summary.total_items: {cart_summary.total_items if cart_summary else 'None'}")
-    
     return templates.TemplateResponse("shop/cart.html", {
         "request": request,
         "cart": cart_summary
@@ -112,7 +103,6 @@ async def add_to_cart_post(
         else:
             return RedirectResponse(url="/shop/cart?error=add_failed", status_code=303)
     except Exception as e:
-        print(f"ERROR adding to cart: {str(e)}")
         return RedirectResponse(url=f"/shop/cart?error={str(e)}", status_code=303)
 
 
@@ -189,6 +179,7 @@ async def process_checkout(
     customer_name: str = Form(...),
     customer_phone: str = Form(...),
     customer_city: str = Form(...),
+    customer_city_custom: Optional[str] = Form(None),
     payment_method_id: Optional[int] = Form(None),
     db: Session = Depends(get_db)
 ):
@@ -199,6 +190,15 @@ async def process_checkout(
     if not cart_summary.items:
         return RedirectResponse(url="/shop/cart", status_code=303)
     
+    # Проверяем и обрабатываем город
+    final_city = customer_city
+    if customer_city == 'custom' and customer_city_custom:
+        final_city = customer_city_custom.strip()
+    elif customer_city == 'custom' and not customer_city_custom:
+        return RedirectResponse(url="/shop/checkout?error=Укажите название города", status_code=303)
+    elif not customer_city:
+        return RedirectResponse(url="/shop/checkout?error=Выберите город", status_code=303)
+    
     try:
         from app.schemas.shop_order import ShopOrderCreate
         
@@ -206,7 +206,7 @@ async def process_checkout(
         order_data = ShopOrderCreate(
             customer_name=customer_name,
             customer_phone=customer_phone,
-            customer_city=customer_city,
+            customer_city=final_city,
             payment_method_id=payment_method_id,
             cart_items=cart_summary.items
         )
@@ -215,17 +215,12 @@ async def process_checkout(
         orders = ShopOrderService.create_orders_from_cart(db, order_data)
         
         if orders:
-            print(f"DEBUG: Orders created successfully: {len(orders)}")
-            for order in orders:
-                print(f"DEBUG: Order {order.id}: code={order.order_code}, product={order.product_name}")
-            
             # Очищаем корзину
             ShopCartService.clear_cart(db, session_id)
             
             # Формируем коды заказов для редиректа
             order_codes = [order.order_code for order in orders]
             codes_param = ','.join(order_codes)
-            print(f"DEBUG: Redirecting to order-success with codes: {codes_param}")
             
             return RedirectResponse(url=f"/shop/order-success?codes={codes_param}", status_code=303)
         else:
@@ -291,7 +286,6 @@ def generate_whatsapp_message(orders, request, db=None):
                 if payment_method:
                     payment_method_name = payment_method.name
             except Exception as e:
-                print(f"ERROR getting payment method from DB: {str(e)}")
                 payment_method_name = "не указан"
     
     if orders and hasattr(orders[0], 'created_at') and orders[0].created_at:
@@ -318,7 +312,6 @@ async def order_success(
 ):
     """Страница успешного создания заказа"""
     order_codes = codes.split(',')
-    print(f"DEBUG: order_success called with codes: {codes}")
     
     # Получаем информацию о заказах из основной таблицы Order
     orders = []
@@ -326,15 +319,11 @@ async def order_success(
         # Ищем заказ по коду в основной таблице Order
         from app.models import Order
         order = db.query(Order).filter(Order.order_code == code).first()
-        print(f"DEBUG: Looking for order with code {code}, found: {order is not None}")
         if order:
-            print(f"DEBUG: Order found: {order.order_code}, product: {order.product_name}")
             # Генерируем QR-код если его нет
             if not hasattr(order, 'has_qr') or not order.has_qr:
                 QRService.generate_qr_for_order(db, order)
             orders.append(order)
-    
-    print(f"DEBUG: Total orders found: {len(orders)}")
     
     return templates.TemplateResponse("shop/order-success.html", {
         "request": request,

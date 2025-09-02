@@ -3,55 +3,63 @@
 {% block title %}Заказ оформлен успешно{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="min-h-screen bg-gray-50 py-4 sm:py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Заголовок -->
-        <div class="text-center mb-8">
-            <div class="flex justify-between items-center">
-                <div>
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                        <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                    </div>
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Заказ оформлен успешно!</h1>
-                    <p class="text-lg text-gray-600">Ваш заказ принят и обрабатывается</p>
-                </div>
-                <!-- Убрали QR-сканер -->
+        <div class="text-center mb-6 sm:mb-8">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
             </div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Заказ оформлен успешно!</h1>
+            <p class="text-base sm:text-lg text-gray-600">Ваш заказ принят и обрабатывается</p>
         </div>
 
         <!-- Информация о заказах -->
         {% for order in orders %}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div class="flex items-start justify-between mb-4">
+        <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+            <!-- Мобильная версия - вертикальная компоновка -->
+            <div class="block sm:hidden">
+                <div class="mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2">{{ order.product_name }}</h2>
+                    <p class="text-gray-600 text-sm mb-1">Количество: {{ order.qty }}</p>
+                    <p class="text-gray-600 text-sm mb-3">Стоимость: {{ order.qty * order.unit_price_rub }} ₽</p>
+                    <div class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium inline-block">
+                        Не оплачено
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Десктопная версия - горизонтальная компоновка -->
+            <div class="hidden sm:flex items-start justify-between mb-4">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900 mb-2">{{ order.product_name }}</h2>
                     <p class="text-gray-600">Количество: {{ order.qty }}</p>
                     <p class="text-gray-600">Стоимость: {{ order.qty * order.unit_price_rub }} ₽</p>
                 </div>
                 <div class="text-right">
-                    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                        {{ order.status }}
+                    <div class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                        Не оплачено
                     </div>
                 </div>
             </div>
 
             <!-- Код заказа -->
             <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Ваш код заказа</h3>
-                <div class="flex items-center space-x-3">
-                    <code class="bg-white px-3 py-2 rounded border text-lg font-mono text-gray-800">
+                <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-2">Ваш код заказа</h3>
+                <div class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+                    <code class="bg-white px-3 py-2 rounded border text-sm sm:text-lg font-mono text-gray-800 break-all">
                         {{ order.order_code }}
                     </code>
                     <button 
                         onclick="copyToClipboard('{{ order.order_code }}')"
-                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                        class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
                     >
                         Копировать
                     </button>
                 </div>
-                <p class="text-sm text-gray-600 mt-2">
+                <p class="text-xs sm:text-sm text-gray-600 mt-2">
                     Только по нему вы сможете получить товар.
                 </p>
             </div>
@@ -59,37 +67,31 @@
             <!-- QR-код -->
             {% if order.has_qr %}
             <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <h3 class="text-lg font-medium text-gray-900 mb-3">QR-код заказа</h3>
-                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-3">QR-код заказа</h3>
+                <div class="flex flex-col items-center space-y-3">
                     <div class="bg-white p-3 rounded-lg border">
                         <img 
                             src="{{ qr_service.get_qr_image_url(order) }}" 
                             alt="QR-код заказа {{ order.order_code }}"
-                            class="w-32 h-32"
+                            class="w-24 h-24 sm:w-32 sm:h-32"
                         />
                     </div>
-                    <div class="flex flex-col space-y-2">
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
                         <button 
                             onclick="downloadQR('{{ order.order_code }}', '{{ qr_service.get_qr_image_url(order) }}')"
-                            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+                            class="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm"
                         >
                             📥 Скачать QR-код
                         </button>
                         <button 
                             onclick="shareQR('{{ order.order_code }}')"
-                            class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
+                            class="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors text-sm"
                         >
                             📤 Поделиться
                         </button>
-                        <button 
-                            onclick="copyQRForWhatsApp('{{ order.order_code }}', '{{ qr_service.get_qr_public_url(order) }}')"
-                            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
-                        >
-                            📱 Скопировать для WhatsApp
-                        </button>
                     </div>
                 </div>
-                <p class="text-sm text-gray-600 mt-3">
+                <p class="text-xs sm:text-sm text-gray-600 mt-3 text-center sm:text-left">
                     Сохраните QR-код — покажите его на складе для получения товара.
                 </p>
             </div>
@@ -97,17 +99,17 @@
 
             <!-- Ссылка на заказ -->
             <div class="bg-blue-50 rounded-lg p-4 mb-4">
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Ссылка на заказ</h3>
-                <div class="flex items-center space-x-3">
+                <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-2">Ссылка на заказ</h3>
+                <div class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
                     <input 
                         type="text" 
                         value="{{ request.base_url }}shop/order/{{ order.order_code }}" 
                         readonly
-                        class="flex-1 bg-white px-3 py-2 rounded border text-gray-800"
+                        class="flex-1 bg-white px-3 py-2 rounded border text-xs sm:text-sm text-gray-800 break-all"
                     />
                     <button 
                         onclick="copyToClipboard('{{ request.base_url }}shop/order/{{ order.order_code }}')"
-                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                        class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
                     >
                         Копировать
                     </button>
@@ -117,48 +119,42 @@
         {% endfor %}
 
         <!-- WhatsApp контакты -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Связаться с менеджером</h3>
+        <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+            <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-4">Связаться с менеджером</h3>
             <div class="space-y-3">
-                <p class="text-gray-600">
+                <p class="text-sm sm:text-base text-gray-600">
                     Для оплаты и уточнения деталей напишите менеджеру в WhatsApp:
                 </p>
-                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                <div class="flex flex-col space-y-3">
                     <a 
-                        href="https://wa.me/79993980159"
+                        href="https://wa.me/375293571197?text=Здравствуйте! У меня есть вопрос по заказу {{ orders[0].order_code if orders else '' }}"
                         target="_blank"
-                        class="inline-flex items-center justify-center bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+                        class="w-full bg-green-500 text-white px-4 py-3 rounded hover:bg-green-600 transition-colors text-center text-sm sm:text-base"
                     >
-                        📱 +7 999 398-01-59
+                        📱 Иван +375 29 357-11-97
                     </a>
                     <a 
-                        href="https://wa.me/375293571197"
+                        href="https://wa.me/79993980159?text=Здравствуйте! У меня есть вопрос по заказу {{ orders[0].order_code if orders else '' }}"
                         target="_blank"
-                        class="inline-flex items-center justify-center bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+                        class="w-full bg-green-500 text-white px-4 py-3 rounded hover:bg-green-600 transition-colors text-center text-sm sm:text-base"
                     >
-                        📱 +375 29 357-11-97
+                        📱 Камалди +7 999 398-01-59
                     </a>
                 </div>
-                <button 
-                    onclick="openWhatsApp('{{ orders[0].order_code if orders else '' }}')"
-                    class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
-                >
-                    💬 Написать менеджеру в WhatsApp
-                </button>
             </div>
         </div>
 
         <!-- Что дальше -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Что дальше?</h3>
-            <div class="space-y-3 text-gray-600">
+        <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+            <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-4">Что дальше?</h3>
+            <div class="space-y-3 text-gray-600 text-sm sm:text-base">
                 <p>Свяжитесь с менеджером для оплаты заказа</p>
                 <p>После оплаты, товары можно забрать на складе или заказать доставку</p>
             </div>
         </div>
 
         <!-- Информация о резерве -->
-        <div class="bg-yellow-50 rounded-lg p-4 mb-6">
+        <div class="bg-yellow-50 rounded-lg p-4 mb-4 sm:mb-6">
             <div class="flex">
                 <div class="flex-shrink-0">
                     <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -166,7 +162,7 @@
                     </svg>
                 </div>
                 <div class="ml-3">
-                    <p class="text-sm text-yellow-800">
+                    <p class="text-xs sm:text-sm text-yellow-800">
                         Товары резервируются на 48 часов. В случае отсутствия оплаты резерв снимается.
                     </p>
                 </div>
@@ -174,11 +170,11 @@
         </div>
 
         <!-- Поиск заказа -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Проверить свой заказ</h3>
+        <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+            <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-4">Проверить свой заказ</h3>
             <form action="/shop/search-order" method="GET" class="space-y-4">
                 <div>
-                    <label for="order_code" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="order_code" class="block text-sm font-medium text-gray-700 mb-2">
                         Код заказа
                     </label>
                     <input 
@@ -186,12 +182,12 @@
                         id="order_code" 
                         name="order_code" 
                         placeholder="Введите код заказа"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         required
                     />
                 </div>
                 <div>
-                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
                         Номер телефона
                     </label>
                     <input 
@@ -199,23 +195,34 @@
                         id="phone" 
                         name="phone" 
                         placeholder="+7 (XXX) XXX-XX-XX"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         required
                     />
                 </div>
                 <button 
                     type="submit"
-                    class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
                 >
                     Найти заказ
                 </button>
             </form>
         </div>
+
+        <!-- Кнопка возврата -->
+        <div class="text-center mt-6 sm:mt-8 mb-6">
+            <a href="/shop" 
+               class="inline-flex items-center px-4 sm:px-6 py-3 border border-transparent text-sm sm:text-base font-medium rounded-md text-white bg-sirius-blue hover:bg-sirius-indigo focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sirius-blue">
+                <svg class="-ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                Вернуться в магазин
+            </a>
+        </div>
     </div>
 </div>
 
 <script>
-// Функции для работы с QR-кодами и WhatsApp
+// Функции для работы с QR-кодами
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
@@ -252,27 +259,10 @@ function shareQR(orderCode) {
     }
 }
 
-function copyQRForWhatsApp(orderCode, qrUrl) {
-    const message = `🛍 Заказ в магазине SIRIUS_GROUPE\n\n📋 Код заказа: ${orderCode}\n🔗 Ссылка на заказ: ${window.location.origin}/shop/order/${orderCode}\n📱 QR-код: ${window.location.origin}${qrUrl}\n\nДля оплаты напишите менеджеру в WhatsApp.`;
-    
-    navigator.clipboard.writeText(message).then(() => {
-        showNotification('Текст для WhatsApp скопирован!', 'success');
-    }).catch(() => {
-        showNotification('Не удалось скопировать', 'error');
-    });
-}
-
-function openWhatsApp(orderCode) {
-    const message = `🛍 Заказ в магазине SIRIUS_GROUPE\n\n📋 Код заказа: ${orderCode}\n🔗 Ссылка на заказ: ${window.location.origin}/shop/order/${orderCode}\n\nДля оплаты напишите менеджеру в WhatsApp.`;
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/375293571197?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
-}
-
 function showNotification(message, type) {
     // Создаем уведомление
     const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 ${
+    notification.className = `fixed top-4 right-4 px-4 sm:px-6 py-3 rounded-lg text-white font-medium z-50 text-sm sm:text-base ${
         type === 'success' ? 'bg-green-500' : 'bg-red-500'
     }`;
     notification.textContent = message;

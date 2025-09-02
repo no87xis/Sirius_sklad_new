@@ -12,7 +12,6 @@ class ShopCartService:
     @staticmethod
     def add_to_cart(db: Session, cart_data: ShopCartCreate) -> ShopCart:
         """Добавляет товар в корзину"""
-        print(f"DEBUG: add_to_cart called with session_id={cart_data.session_id}, product_id={cart_data.product_id}, quantity={cart_data.quantity}")
         
         # Проверяем, есть ли уже такой товар в корзине
         existing_item = db.query(ShopCart).filter(
@@ -22,19 +21,14 @@ class ShopCartService:
             )
         ).first()
         
-        print(f"DEBUG: Existing item found: {existing_item is not None}")
-        
         if existing_item:
             # Обновляем количество
-            print(f"DEBUG: Updating existing item quantity from {existing_item.quantity} to {existing_item.quantity + cart_data.quantity}")
             existing_item.quantity += cart_data.quantity
             db.commit()
             db.refresh(existing_item)
-            print(f"DEBUG: Updated existing item: {existing_item}")
             return existing_item
         else:
             # Создаём новый элемент корзины
-            print(f"DEBUG: Creating new cart item")
             cart_item = ShopCart(
                 session_id=cart_data.session_id,
                 product_id=cart_data.product_id,
@@ -43,7 +37,6 @@ class ShopCartService:
             db.add(cart_item)
             db.commit()
             db.refresh(cart_item)
-            print(f"DEBUG: Created new cart item: {cart_item}")
             return cart_item
     
     @staticmethod
@@ -100,22 +93,16 @@ class ShopCartService:
     @staticmethod
     def get_cart_items(db: Session, session_id: str) -> List[ShopCartItemResponse]:
         """Получает все товары в корзине с расширенной информацией"""
-        print(f"DEBUG: get_cart_items called with session_id={session_id}")
         
         cart_items = db.query(ShopCart).filter(
             ShopCart.session_id == session_id
         ).all()
-        
-        print(f"DEBUG: Raw cart items from DB: {len(cart_items)}")
-        for item in cart_items:
-            print(f"DEBUG: Cart item: id={item.id}, session_id={item.session_id}, product_id={item.product_id}, quantity={item.quantity}")
         
         result = []
         for cart_item in cart_items:
             # Получаем информацию о товаре
             product = db.query(Product).filter(Product.id == cart_item.product_id).first()
             if not product:
-                print(f"DEBUG: Product not found for product_id={cart_item.product_id}")
                 continue
             
             # Получаем главное фото
@@ -146,7 +133,13 @@ class ShopCartService:
             if main_photo and main_photo.file_path:
                 # Убираем 'app/static/' из пути если есть
                 photo_path = main_photo.file_path.replace('app/static/', '')
-                main_photo_url = f"/static/{photo_path}"
+                # Проверяем, что путь не пустой
+                if photo_path.strip():
+                    main_photo_url = f"/static/{photo_path}"
+                else:
+                    main_photo_url = None
+            else:
+                main_photo_url = None
             
             cart_item_response = ShopCartItemResponse(
                 id=cart_item.id,
@@ -171,15 +164,11 @@ class ShopCartService:
     @staticmethod
     def get_cart_summary(db: Session, session_id: str) -> ShopCartSummary:
         """Получает сводку по корзине"""
-        print(f"DEBUG: get_cart_summary called with session_id={session_id}")
         
         cart_items = ShopCartService.get_cart_items(db, session_id)
-        print(f"DEBUG: get_cart_items returned {len(cart_items)} items")
         
         total_items = sum(item.quantity for item in cart_items)
         total_amount = sum(item.total_price for item in cart_items if item.total_price)
-        
-        print(f"DEBUG: Cart summary: total_items={total_items}, total_amount={total_amount}")
         
         return ShopCartSummary(
             items=cart_items,

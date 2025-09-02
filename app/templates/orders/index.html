@@ -3,143 +3,220 @@
 {% block title %}Заказы - Сириус{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">Заказы</h1>
-        <div class="flex space-x-3">
-            <a href="/qr-scanner" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+<div class="container mx-auto px-4 py-4 sm:py-8">
+    <!-- Заголовок и кнопки -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Заказы</h1>
+        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+            <a href="/qr-scanner" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center justify-center text-sm">
                 📷 QR-сканер
             </a>
-            <a href="/orders/new" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            <a href="/orders/new" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
                 Новый заказ
             </a>
         </div>
     </div>
 
     <!-- Статистика -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white p-4 rounded-lg shadow">
-            <h3 class="text-lg font-semibold text-gray-700">Всего заказов</h3>
-            <p class="text-2xl font-bold text-blue-600">{{ stats.total_orders }}</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div class="bg-white p-3 sm:p-4 rounded-lg shadow">
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-700">Всего заказов</h3>
+            <p class="text-lg sm:text-2xl font-bold text-blue-600">{{ stats.total_orders }}</p>
         </div>
-        <div class="bg-white p-4 rounded-lg shadow">
-            <h3 class="text-lg font-semibold text-gray-700">Ожидают выдачи</h3>
-            <p class="text-2xl font-bold text-yellow-600">{{ stats.pending_count }}</p>
+        <div class="bg-white p-3 sm:p-4 rounded-lg shadow">
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-700">Ожидают выдачи</h3>
+            <p class="text-lg sm:text-2xl font-bold text-yellow-600">{{ stats.pending_count }}</p>
         </div>
-        <div class="bg-white p-4 rounded-lg shadow">
-            <h3 class="text-lg font-semibold text-gray-700">Выдано</h3>
-            <p class="text-2xl font-bold text-green-600">{{ stats.issued_count }}</p>
+        <div class="bg-white p-3 sm:p-4 rounded-lg shadow">
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-700">Выдано</h3>
+            <p class="text-lg sm:text-2xl font-bold text-green-600">{{ stats.issued_count }}</p>
         </div>
-        <div class="bg-white p-4 rounded-lg shadow">
-            <h3 class="text-lg font-semibold text-gray-700">Общая выручка</h3>
-            <p class="text-2xl font-bold text-green-600">{{ "%.2f"|format(stats.total_revenue) }} ₽</p>
+        <div class="bg-white p-3 sm:p-4 rounded-lg shadow">
+            <h3 class="text-sm sm:text-lg font-semibold text-gray-700">Общая выручка</h3>
+            <p class="text-lg sm:text-2xl font-bold text-green-600">{{ "%.2f"|format(stats.total_revenue) }} ₽</p>
         </div>
     </div>
 
     <!-- Фильтры и поиск -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
-        <form method="GET" class="flex flex-wrap gap-4 items-end">
-            <div>
-                <label for="status_filter" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
-                <select name="status_filter" id="status_filter" class="border border-gray-300 rounded-md px-3 py-2">
-                    <option value="">Все статусы</option>
-                    <option value="paid_not_issued" {% if status_filter == "paid_not_issued" %}selected{% endif %}>Ожидает выдачи</option>
-                    <option value="paid_issued" {% if status_filter == "paid_issued" %}selected{% endif %}>Выдано</option>
-                    <option value="paid_denied" {% if status_filter == "paid_denied" %}selected{% endif %}>Отменено</option>
-                </select>
-            </div>
-            <div>
-                <label for="phone_search" class="block text-sm font-medium text-gray-700 mb-1">Поиск по телефону</label>
-                <input type="text" name="phone_search" id="phone_search" value="{{ phone_search or '' }}" 
-                       placeholder="Введите номер телефона" class="border border-gray-300 rounded-md px-3 py-2">
-            </div>
-            <div>
-                <label for="code_search" class="block text-sm font-medium text-gray-700 mb-1">Поиск по коду заказа</label>
-                <input type="text" name="code_search" id="code_search" value="{{ code_search or '' }}" 
-                       placeholder="Полный код заказа (8 символов)" class="border border-gray-300 rounded-md px-3 py-2">
-            </div>
-            <div class="flex gap-2">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    Применить
-                </button>
-                <a href="/orders" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
-                    Сбросить
-                </a>
+        <form method="GET" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="status_filter" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+                    <select name="status_filter" id="status_filter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">Все статусы</option>
+                        <option value="paid_not_issued" {% if status_filter == "paid_not_issued" %}selected{% endif %}>Ожидает выдачи</option>
+                        <option value="paid_issued" {% if status_filter == "paid_issued" %}selected{% endif %}>Выдано</option>
+                        <option value="paid_denied" {% if status_filter == "paid_denied" %}selected{% endif %}>Отменено</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="phone_search" class="block text-sm font-medium text-gray-700 mb-1">Поиск по телефону</label>
+                    <input type="text" name="phone_search" id="phone_search" value="{{ phone_search or '' }}" 
+                           placeholder="Введите номер телефона" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label for="code_search" class="block text-sm font-medium text-gray-700 mb-1">Поиск по коду заказа</label>
+                    <input type="text" name="code_search" id="code_search" value="{{ code_search or '' }}" 
+                           placeholder="Полный код заказа" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                </div>
+                <div class="flex flex-col space-y-2">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
+                        Применить
+                    </button>
+                    <a href="/orders" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded text-center text-sm">
+                        Сбросить
+                    </a>
+                </div>
             </div>
         </form>
     </div>
 
-    <!-- Таблица заказов -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Код заказа</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Клиент</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Товар</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Количество</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Цена</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сумма</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% for order in orders %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ order.id }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
+    <!-- Мобильная версия - карточки -->
+    <div class="block lg:hidden space-y-4">
+        {% for order in orders %}
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span class="text-sm font-medium text-gray-900">#{{ order.id }}</span>
                         {% if order.order_code %}
-                            <div class="text-sm font-mono font-bold text-gray-400">••••••••</div>
-                            <div class="text-xs text-gray-500">Код скрыт</div>
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">••••••••</span>
                         {% else %}
-                            <span class="text-sm text-gray-400">Не создан</span>
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">Код не создан</span>
                         {% endif %}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">{{ order.customer_name or 'Не указано' }}</div>
-                        <div class="text-sm text-gray-500">{{ order.phone }}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ order.product_name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ order.qty }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.2f"|format(order.unit_price_rub) }} ₽</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ "%.2f"|format(order.total_amount) }} ₽</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        {% if order.status == "paid_not_issued" %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                Ожидает выдачи
-                            </span>
-                        {% elif order.status == "paid_issued" %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Выдано
-                            </span>
-                        {% elif order.status == "paid_denied" %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                Отменено
-                            </span>
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <a href="/orders/{{ order.id }}" class="text-blue-600 hover:text-blue-900 mr-3">Просмотр</a>
-                        {% if current_user and current_user.role in ['admin', 'manager'] %}
-                            <a href="/orders/{{ order.id }}/edit" class="text-indigo-600 hover:text-indigo-900">Редактировать</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
-                        Заказы не найдены
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    </div>
+                    <h3 class="font-medium text-gray-900 mb-1">{{ order.product_name }}</h3>
+                    <p class="text-sm text-gray-600">{{ order.customer_name or 'Имя не указано' }}</p>
+                    <p class="text-sm text-gray-500">{{ order.phone }}</p>
+                </div>
+                <div class="text-right">
+                    {% if order.status == "paid_not_issued" %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Ожидает выдачи
+                        </span>
+                    {% elif order.status == "paid_issued" %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Выдано
+                        </span>
+                    {% elif order.status == "paid_denied" %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Отменено
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-3 text-sm">
+                <div>
+                    <span class="text-gray-500">Количество:</span>
+                    <span class="font-medium">{{ order.qty }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">Цена:</span>
+                    <span class="font-medium">{{ "%.2f"|format(order.unit_price_rub) }} ₽</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">Сумма:</span>
+                    <span class="font-medium text-blue-600">{{ "%.2f"|format(order.total_amount) }} ₽</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">Дата:</span>
+                    <span class="font-medium">{{ order.created_at.strftime('%d.%m.%Y') }}</span>
+                </div>
+            </div>
+            
+            <div class="flex space-x-2 pt-3 border-t border-gray-200">
+                <a href="/orders/{{ order.id }}" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-3 rounded text-sm">
+                    Просмотр
+                </a>
+                {% if current_user and current_user.role in ['admin', 'manager'] %}
+                    <a href="/orders/{{ order.id }}/edit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-center py-2 px-3 rounded text-sm">
+                        Редактировать
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-lg shadow p-8 text-center">
+            <p class="text-gray-500">Заказы не найдены</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Десктопная версия - таблица -->
+    <div class="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Код заказа</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Клиент</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Товар</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Количество</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Цена</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сумма</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for order in orders %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ order.id }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if order.order_code %}
+                                <div class="text-sm font-mono font-bold text-gray-400">••••••••</div>
+                                <div class="text-xs text-gray-500">Код скрыт</div>
+                            {% else %}
+                                <span class="text-sm text-gray-400">Не создан</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ order.customer_name or 'Не указано' }}</div>
+                            <div class="text-sm text-gray-500">{{ order.phone }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ order.product_name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ order.qty }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.2f"|format(order.unit_price_rub) }} ₽</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ "%.2f"|format(order.total_amount) }} ₽</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if order.status == "paid_not_issued" %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Ожидает выдачи
+                                </span>
+                            {% elif order.status == "paid_issued" %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Выдано
+                                </span>
+                            {% elif order.status == "paid_denied" %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Отменено
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="/orders/{{ order.id }}" class="text-blue-600 hover:text-blue-900 mr-3">Просмотр</a>
+                            {% if current_user and current_user.role in ['admin', 'manager'] %}
+                                <a href="/orders/{{ order.id }}/edit" class="text-indigo-600 hover:text-indigo-900">Редактировать</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="10" class="px-6 py-4 text-center text-sm text-gray-500">
+                            Заказы не найдены
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

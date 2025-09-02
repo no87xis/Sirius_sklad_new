@@ -1,0 +1,19 @@
+warning: in the working copy of 'app/templates/shop/order-success.html', CRLF will be replaced by LF the next time Git touches it
+[1mdiff --git a/app/templates/shop/order-success.html b/app/templates/shop/order-success.html[m
+[1mindex 4562a64..593acc8 100644[m
+[1m--- a/app/templates/shop/order-success.html[m
+[1m+++ b/app/templates/shop/order-success.html[m
+[36m@@ -262,13 +262,6 @@[m [mfunction copyQRForWhatsApp(orderCode, qrUrl) {[m
+     });[m
+ }[m
+ [m
+[31m-function openWhatsApp(orderCode) {[m
+[31m-    const message = `🛍 Заказ в магазине SIRIUS_GROUPE\n\n📋 Код заказа: ${orderCode}\n🔗 Ссылка на заказ: ${window.location.origin}/shop/order/${orderCode}\n\nДля оплаты напишите менеджеру в WhatsApp.`;[m
+[31m-    const encodedMessage = encodeURIComponent(message);[m
+[31m-    const whatsappUrl = `https://wa.me/375293571197?text=${encodedMessage}`;[m
+[31m-    window.open(whatsappUrl, '_blank');[m
+[31m-}[m
+[31m-[m
+ function showNotification(message, type) {[m
+     // Создаем уведомление[m
+     const notification = document.createElement('div');[m

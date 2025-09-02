@@ -1,170 +1,366 @@
 {% extends "base.html" %}
 
-{% block title %}Сканер QR-кода - Сириус{% endblock %}
+{% block title %}QR-сканер заказов - Сириус{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-4 sm:py-8">
     <div class="max-w-4xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-900">Сканер QR-кода</h1>
-            <a href="javascript:history.back()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+        <!-- Заголовок -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">QR-сканер заказов</h1>
+            <a href="javascript:history.back()" class="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded text-sm text-center">
                 ← Назад
             </a>
         </div>
 
         <!-- Инструкции -->
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 class="text-lg font-semibold text-blue-900 mb-2">Как использовать сканер:</h3>
-            <ul class="text-blue-800 space-y-1">
+            <h3 class="text-base sm:text-lg font-semibold text-blue-900 mb-2">📱 Как использовать сканер:</h3>
+            <ul class="text-blue-800 space-y-1 text-sm sm:text-base">
                 <li>• Разрешите доступ к камере при запросе браузера</li>
                 <li>• Наведите камеру на QR-код заказа</li>
-                <li>• Сканер автоматически распознает код и покажет информацию о заказе</li>
-                <li>• Используйте кнопку "Включить камеру" для повторного запуска</li>
+                <li>• Сканер автоматически распознает код и перейдет к заказу</li>
+                <li>• Используйте кнопку "Выбрать камеру" для переключения</li>
             </ul>
         </div>
 
-        <!-- Сканер -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="mb-4">
-                <button id="startCamera" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
-                    📷 Включить камеру
+        <!-- Основной сканер -->
+        <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+            <!-- Кнопки управления -->
+            <div class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                <button id="startCamera" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-colors">
+                    📷 Начать сканирование
                 </button>
-                <button id="stopCamera" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" style="display: none;">
+                <button id="selectCamera" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-colors" style="display: none;">
+                    🔄 Выбрать камеру
+                </button>
+                <button id="stopCamera" class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-colors" style="display: none;">
                     🛑 Остановить камеру
                 </button>
             </div>
             
+            <!-- Селектор камеры -->
+            <div id="cameraSelector" class="mb-4" style="display: none;">
+                <label for="cameraSelect" class="block text-sm font-medium text-gray-700 mb-2">Выберите камеру:</label>
+                <select id="cameraSelect" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                    <option value="">Загрузка камер...</option>
+                </select>
+            </div>
+            
             <!-- Контейнер для камеры -->
-            <div id="qr-reader" class="w-full max-w-md mx-auto mb-4 border-2 border-dashed border-gray-300 rounded-lg p-4" style="display: none;">
-                <div class="text-center text-gray-500">
-                    <div class="text-4xl mb-2">📷</div>
-                    <div>Инициализация камеры...</div>
+            <div id="cameraContainer" class="w-full max-w-md mx-auto mb-4 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden" style="display: none;">
+                <video id="cameraVideo" 
+                       playsinline 
+                       autoplay 
+                       muted 
+                       class="w-full h-64 object-cover"
+                       style="display: none;">
+                </video>
+                <canvas id="cameraCanvas" class="w-full h-64" style="display: none;"></canvas>
+                
+                <!-- Направляющая рамка -->
+                <div id="scannerOverlay" class="absolute inset-0 pointer-events-none" style="display: none;">
+                    <div class="relative w-full h-full">
+                        <!-- Рамка сканирования -->
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-blue-500 rounded-lg">
+                            <!-- Углы рамки -->
+                            <div class="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-blue-500 rounded-tl-lg"></div>
+                            <div class="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-blue-500 rounded-tr-lg"></div>
+                            <div class="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-blue-500 rounded-bl-lg"></div>
+                            <div class="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-blue-500 rounded-br-lg"></div>
+                        </div>
+                        
+                        <!-- Анимированная линия сканирования -->
+                        <div id="scanLine" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-0.5 bg-blue-500 animate-pulse"></div>
+                    </div>
+                </div>
+                
+                <!-- Статус камеры -->
+                <div id="cameraStatus" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div class="text-center text-white">
+                        <div class="text-4xl mb-2">📷</div>
+                        <div class="text-sm">Инициализация камеры...</div>
+                    </div>
                 </div>
             </div>
             
-            <!-- Статус камеры -->
-            <div id="qr-reader-results" class="text-center text-gray-500">
-                Камера не запущена. Нажмите "Включить камеру" для начала сканирования.
+            <!-- Статус сканирования -->
+            <div id="scanStatus" class="text-center text-gray-500 text-sm sm:text-base">
+                Камера не запущена. Нажмите "Начать сканирование" для начала работы.
             </div>
             
             <!-- Ошибки -->
             <div id="cameraError" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg" style="display: none;">
                 <div class="flex items-center">
                     <div class="text-red-600 text-xl mr-2">⚠️</div>
-                    <div>
+                    <div class="flex-1">
                         <div class="font-semibold text-red-800">Ошибка камеры</div>
                         <div id="errorMessage" class="text-red-700 text-sm"></div>
+                        <div class="mt-2 space-y-2">
+                            <button id="retryCamera" class="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded">
+                                🔄 Повторить
+                            </button>
+                            <button id="uploadQR" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded ml-2">
+                                📁 Загрузить фото QR
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Результат сканирования -->
-        <div id="scanResult" class="bg-white rounded-lg shadow p-6 mt-6" style="display: none;">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Результат сканирования</h3>
-            <div id="resultContent"></div>
+        <!-- Загрузка фото QR-кода -->
+        <div id="uploadSection" class="bg-white rounded-lg shadow p-4 sm:p-6 mt-6" style="display: none;">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Загрузить фото QR-кода</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="qrFileInput" class="block text-sm font-medium text-gray-700 mb-2">
+                        Выберите изображение с QR-кодом:
+                    </label>
+                    <input type="file" 
+                           id="qrFileInput" 
+                           accept="image/*" 
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                           onchange="handleFileUpload(this)">
+                </div>
+                <div class="text-sm text-gray-600">
+                    Поддерживаемые форматы: JPG, PNG, GIF, WebP
+                </div>
+            </div>
         </div>
 
-        <!-- История сканирований -->
-        <div class="bg-white rounded-lg shadow p-6 mt-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">История сканирований</h3>
-            <div id="scanHistory" class="space-y-2">
-                <div class="text-gray-500 text-center">История сканирований будет отображаться здесь</div>
-            </div>
+        <!-- Результат сканирования -->
+        <div id="scanResult" class="bg-white rounded-lg shadow p-4 sm:p-6 mt-6" style="display: none;">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Результат сканирования</h3>
+            <div id="resultContent"></div>
         </div>
     </div>
 </div>
 
-<!-- Подключаем HTML5 QR Scanner -->
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- Скрытый input для загрузки файлов -->
+<input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
+
+<!-- Подключаем jsQR для распознавания -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
 <script>
-let html5QrcodeScanner = null;
-let scanHistory = [];
+// Глобальные переменные
+let mediaStream = null;
+let videoTrack = null;
+let animationFrame = null;
+let isScanning = false;
+let availableCameras = [];
+let currentCameraId = null;
 
-document.getElementById('startCamera').addEventListener('click', startScanner);
-document.getElementById('stopCamera').addEventListener('click', stopScanner);
+// Элементы DOM
+const startBtn = document.getElementById('startCamera');
+const selectBtn = document.getElementById('selectCamera');
+const stopBtn = document.getElementById('stopCamera');
+const cameraSelector = document.getElementById('cameraSelector');
+const cameraSelect = document.getElementById('cameraSelect');
+const cameraContainer = document.getElementById('cameraContainer');
+const cameraVideo = document.getElementById('cameraVideo');
+const cameraCanvas = document.getElementById('cameraCanvas');
+const scannerOverlay = document.getElementById('scannerOverlay');
+const cameraStatus = document.getElementById('cameraStatus');
+const scanStatus = document.getElementById('scanStatus');
+const cameraError = document.getElementById('cameraError');
+const errorMessage = document.getElementById('errorMessage');
+const retryBtn = document.getElementById('retryBtn');
+const uploadBtn = document.getElementById('uploadQR');
+const uploadSection = document.getElementById('uploadSection');
+const scanResult = document.getElementById('scanResult');
+const resultContent = document.getElementById('resultContent');
 
-function startScanner() {
-    const qrReader = document.getElementById('qr-reader');
-    const startBtn = document.getElementById('startCamera');
-    const stopBtn = document.getElementById('stopCamera');
-    const resultsDiv = document.getElementById('qr-reader-results');
-    const cameraErrorDiv = document.getElementById('cameraError');
-    
-    qrReader.style.display = 'block';
-    startBtn.style.display = 'none';
-    stopBtn.style.display = 'inline-block';
-    resultsDiv.textContent = 'Сканирование...';
-    cameraErrorDiv.style.display = 'none'; // Скрываем ошибку при запуске
-    
-    html5QrcodeScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        }
-    );
-    
-    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-}
+// Обработчики событий
+startBtn.addEventListener('click', startCamera);
+selectBtn.addEventListener('click', showCameraSelector);
+stopBtn.addEventListener('click', stopCamera);
+retryBtn.addEventListener('click', startCamera);
+uploadBtn.addEventListener('click', () => document.getElementById('qrFileInput').click());
 
-function stopScanner() {
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear();
-        html5QrcodeScanner = null;
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем поддержку getUserMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showError('Ваш браузер не поддерживает доступ к камере');
+        return;
     }
     
-    const qrReader = document.getElementById('qr-reader');
-    const startBtn = document.getElementById('startCamera');
-    const stopBtn = document.getElementById('stopCamera');
-    const resultsDiv = document.getElementById('qr-reader-results');
-    const cameraErrorDiv = document.getElementById('cameraError');
-    
-    qrReader.style.display = 'none';
-    startBtn.style.display = 'inline-block';
-    stopBtn.style.display = 'none';
-    resultsDiv.textContent = 'Камера остановлена. Нажмите "Включить камеру" для повторного запуска.';
-    cameraErrorDiv.style.display = 'none'; // Скрываем ошибку при остановке
+    // Получаем список доступных камер
+    getAvailableCameras();
+});
+
+// Получение списка доступных камер
+async function getAvailableCameras() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        availableCameras = devices.filter(device => device.kind === 'videoinput');
+        
+        if (availableCameras.length === 0) {
+            showError('Не найдены видеоустройства');
+            return;
+        }
+        
+        // Заполняем селектор камер
+        cameraSelect.innerHTML = availableCameras.map((camera, index) => {
+            const label = camera.label || `Камера ${index + 1}`;
+            return `<option value="${camera.deviceId}">${label}</option>`;
+        }).join('');
+        
+        // Выбираем первую камеру по умолчанию
+        if (availableCameras.length > 0) {
+            currentCameraId = availableCameras[0].deviceId;
+            cameraSelect.value = currentCameraId;
+        }
+        
+        // Показываем селектор если камер несколько
+        if (availableCameras.length > 1) {
+            selectBtn.style.display = 'inline-block';
+        }
+        
+    } catch (error) {
+        console.error('Ошибка получения списка камер:', error);
+        showError('Не удалось получить список камер');
+    }
 }
 
-function onScanSuccess(decodedText, decodedResult) {
-    // Останавливаем сканер после успешного сканирования
-    stopScanner();
+// Запуск камеры
+async function startCamera() {
+    try {
+        // Очищаем предыдущие ошибки
+        hideError();
+        
+        // Показываем контейнер камеры
+        cameraContainer.style.display = 'block';
+        cameraStatus.style.display = 'flex';
+        scannerOverlay.style.display = 'none';
+        
+        // Обновляем UI
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'inline-block';
+        scanStatus.textContent = 'Запуск камеры...';
+        
+        // Запрашиваем доступ к камере
+        const constraints = {
+            video: {
+                facingMode: 'environment', // Тыловая камера
+                width: { ideal: 1280, max: 1920 },
+                height: { ideal: 720, max: 1080 }
+            },
+            audio: false
+        };
+        
+        // Если выбрана конкретная камера
+        if (currentCameraId) {
+            constraints.video.deviceId = { exact: currentCameraId };
+        }
+        
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoTrack = mediaStream.getVideoTracks()[0];
+        
+        // Подключаем поток к видео
+        cameraVideo.srcObject = mediaStream;
+        
+        // Ждем загрузки видео
+        await new Promise((resolve) => {
+            cameraVideo.onloadedmetadata = resolve;
+        });
+        
+        // Запускаем видео
+        await cameraVideo.play();
+        
+        // Скрываем статус и показываем видео
+        cameraStatus.style.display = 'none';
+        cameraVideo.style.display = 'block';
+        scannerOverlay.style.display = 'block';
+        
+        // Запускаем сканирование
+        startScanning();
+        
+        scanStatus.textContent = 'Сканирование... Наведите камеру на QR-код';
+        
+    } catch (error) {
+        console.error('Ошибка запуска камеры:', error);
+        handleCameraError(error);
+    }
+}
+
+// Запуск сканирования
+function startScanning() {
+    if (isScanning) return;
     
-    // Добавляем в историю
-    const timestamp = new Date().toLocaleString('ru-RU');
-    scanHistory.unshift({
-        code: decodedText,
-        timestamp: timestamp
-    });
+    isScanning = true;
+    scanFrame();
+}
+
+// Сканирование кадра
+function scanFrame() {
+    if (!isScanning || !mediaStream) return;
     
-    // Обновляем историю
-    updateScanHistory();
+    try {
+        // Получаем размеры видео
+        const videoWidth = cameraVideo.videoWidth;
+        const videoHeight = cameraVideo.videoHeight;
+        
+        if (videoWidth === 0 || videoHeight === 0) {
+            // Видео еще не готово, пробуем снова
+            animationFrame = requestAnimationFrame(scanFrame);
+            return;
+        }
+        
+        // Создаем canvas для обработки кадра
+        const canvas = cameraCanvas;
+        const ctx = canvas.getContext('2d');
+        
+        // Устанавливаем размеры canvas
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
+        
+        // Рисуем текущий кадр видео на canvas
+        ctx.drawImage(cameraVideo, 0, 0, videoWidth, videoHeight);
+        
+        // Получаем данные изображения
+        const imageData = ctx.getImageData(0, 0, videoWidth, videoHeight);
+        
+        // Распознаем QR-код
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        
+        if (code) {
+            // QR-код найден!
+            console.log('QR-код найден:', code.data);
+            onScanSuccess(code.data);
+            return;
+        }
+        
+        // Продолжаем сканирование
+        animationFrame = requestAnimationFrame(scanFrame);
+        
+    } catch (error) {
+        console.error('Ошибка сканирования:', error);
+        animationFrame = requestAnimationFrame(scanFrame);
+    }
+}
+
+// Обработка успешного сканирования
+function onScanSuccess(qrCode) {
+    // Останавливаем сканирование
+    stopScanning();
     
     // Показываем результат
-    showScanResult(decodedText);
+    showScanResult(qrCode);
     
     // Воспроизводим звук успеха
     playSuccessSound();
-}
-
-function onScanFailure(error) {
-    // Ошибки сканирования игнорируем (это нормально)
-    console.log('Scan error:', error);
-    const resultsDiv = document.getElementById('qr-reader-results');
-    const cameraErrorDiv = document.getElementById('cameraError');
-    resultsDiv.textContent = 'Сканирование не удалось. Пожалуйста, проверьте настройки камеры.';
-    cameraErrorDiv.style.display = 'block';
-    document.getElementById('errorMessage').textContent = error.message;
-}
-
-function showScanResult(qrCode) {
-    const resultDiv = document.getElementById('scanResult');
-    const resultContent = document.getElementById('resultContent');
     
-    // Парсим QR-код (предполагаем, что это код заказа)
+    // Автоматически переходим к заказу через 2 секунды
+    setTimeout(() => {
+        redirectToOrder(qrCode);
+    }, 2000);
+}
+
+// Показ результата сканирования
+function showScanResult(qrCode) {
     resultContent.innerHTML = `
         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
             <div class="flex items-center mb-3">
@@ -172,81 +368,221 @@ function showScanResult(qrCode) {
                 <h4 class="text-lg font-semibold text-green-900">QR-код успешно отсканирован!</h4>
             </div>
             <div class="space-y-2">
-                <div><strong>Код:</strong> <span class="font-mono text-lg">${qrCode}</span></div>
-                <div><strong>Тип:</strong> Код заказа</div>
+                <div><strong>Код заказа:</strong> <span class="font-mono text-lg">${qrCode}</span></div>
                 <div><strong>Время:</strong> ${new Date().toLocaleString('ru-RU')}</div>
             </div>
+            <div class="mt-4 p-3 bg-blue-50 rounded border">
+                <p class="text-sm text-blue-700">
+                    <strong>Автоматический переход к заказу через 2 секунды...</strong><br>
+                    Или нажмите кнопку ниже для немедленного перехода
+                </p>
+            </div>
             <div class="mt-4 space-x-2">
-                <button onclick="searchOrder('${qrCode}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    🔍 Найти заказ
+                <button onclick="redirectToOrder('${qrCode}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
+                    🔍 Перейти к заказу
                 </button>
-                <button onclick="copyToClipboard('${qrCode}')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                <button onclick="copyToClipboard('${qrCode}')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm">
                     📋 Копировать код
                 </button>
             </div>
         </div>
     `;
     
-    resultDiv.style.display = 'block';
+    scanResult.style.display = 'block';
 }
 
-function updateScanHistory() {
-    const historyDiv = document.getElementById('scanHistory');
+// Переход к заказу
+function redirectToOrder(qrCode) {
+    // Очищаем результат
+    scanResult.style.display = 'none';
     
-    if (scanHistory.length === 0) {
-        historyDiv.innerHTML = '<div class="text-gray-500 text-center">История сканирований пуста</div>';
+    // Перенаправляем на страницу заказа
+    window.location.href = `/orders/search?code=${encodeURIComponent(qrCode)}`;
+}
+
+// Остановка сканирования
+function stopScanning() {
+    isScanning = false;
+    if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+    }
+}
+
+// Остановка камеры
+function stopCamera() {
+    stopScanning();
+    
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+        videoTrack = null;
+    }
+    
+    // Скрываем видео
+    cameraVideo.style.display = 'none';
+    scannerOverlay.style.display = 'none';
+    cameraStatus.style.display = 'flex';
+    cameraStatus.innerHTML = `
+        <div class="text-center text-white">
+            <div class="text-4xl mb-2">📷</div>
+            <div class="text-sm">Камера остановлена</div>
+        </div>
+    `;
+    
+    // Обновляем UI
+    startBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'none';
+    scanStatus.textContent = 'Камера остановлена. Нажмите "Начать сканирование" для повторного запуска.';
+}
+
+// Показ селектора камер
+function showCameraSelector() {
+    cameraSelector.style.display = 'block';
+    cameraSelect.focus();
+}
+
+// Обработка изменения выбранной камеры
+cameraSelect.addEventListener('change', function() {
+    currentCameraId = this.value;
+    if (mediaStream) {
+        // Перезапускаем камеру с новой камерой
+        stopCamera();
+        setTimeout(startCamera, 100);
+    }
+});
+
+// Обработка ошибок камеры
+function handleCameraError(error) {
+    console.error('Ошибка камеры:', error);
+    
+    let errorText = 'Неизвестная ошибка';
+    
+    if (error.name === 'NotAllowedError') {
+        errorText = 'Доступ к камере не предоставлен. Разрешите доступ в настройках браузера.';
+    } else if (error.name === 'NotFoundError') {
+        errorText = 'Камера не найдена. Проверьте подключение камеры.';
+    } else if (error.name === 'NotReadableError') {
+        errorText = 'Камера занята другим приложением. Закройте другие приложения, использующие камеру.';
+    } else if (error.name === 'OverconstrainedError') {
+        errorText = 'Камера не поддерживает требуемые параметры.';
+    } else if (error.name === 'SecurityError') {
+        errorText = 'Доступ к камере заблокирован из соображений безопасности.';
+    } else if (error.name === 'AbortError') {
+        errorText = 'Операция с камерой была прервана.';
+    }
+    
+    showError(errorText);
+    stopCamera();
+}
+
+// Показ ошибки
+function showError(message) {
+    errorMessage.textContent = message;
+    cameraError.style.display = 'block';
+    uploadSection.style.display = 'block';
+}
+
+// Скрытие ошибки
+function hideError() {
+    cameraError.style.display = 'none';
+}
+
+// Обработка загрузки файла
+function handleFileUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+        showError('Пожалуйста, выберите изображение');
         return;
     }
     
-    historyDiv.innerHTML = scanHistory.map(item => `
-        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-            <div class="font-mono text-sm">${item.code}</div>
-            <div class="text-xs text-gray-500">${item.timestamp}</div>
-        </div>
-    `).join('');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // Создаем canvas для обработки изображения
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // Рисуем изображение на canvas
+            ctx.drawImage(img, 0, 0);
+            
+            // Получаем данные изображения
+            const imageData = ctx.getImageData(0, 0, img.width, img.height);
+            
+            // Распознаем QR-код
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            
+            if (code) {
+                onScanSuccess(code.data);
+            } else {
+                showError('QR-код не найден в изображении. Попробуйте другое изображение.');
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 }
 
-function searchOrder(code) {
-    // Перенаправляем на страницу поиска заказов с предзаполненным кодом
-    window.location.href = `/orders/search?code=${encodeURIComponent(code)}`;
-}
-
+// Копирование в буфер обмена
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        // Показываем уведомление об успешном копировании
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
-        notification.textContent = 'Код скопирован в буфер обмена!';
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 2000);
+        showNotification('Код скопирован в буфер обмена!', 'success');
+    }).catch(() => {
+        showNotification('Не удалось скопировать код', 'error');
     });
 }
 
-function playSuccessSound() {
-    // Создаем простой звук успеха
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+// Показ уведомления
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-4 py-3 rounded-lg text-white font-medium z-50 text-sm ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    }`;
+    notification.textContent = message;
     
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    document.body.appendChild(notification);
     
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
-    
-    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.2);
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
 }
 
-// Автоматически запускаем сканер при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-    // Не запускаем автоматически - пользователь должен разрешить доступ к камере
+// Воспроизведение звука успеха
+function playSuccessSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (error) {
+        console.log('Не удалось воспроизвести звук:', error);
+    }
+}
+
+// Очистка при закрытии страницы
+window.addEventListener('beforeunload', function() {
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+    }
 });
 </script>
 {% endblock %}
