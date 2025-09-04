@@ -111,5 +111,20 @@ echo   Проверка доступности сервера:
 echo     curl http://127.0.0.1:8000/
 echo.
 
+echo 🔍 ОПЦИОНАЛЬНЫЕ ПРОВЕРКИ:
+echo.
+echo   Проверка /health endpoint (ОТКЛЮЧЕНО по умолчанию):
+echo     curl http://127.0.0.1:8000/health
+echo     curl http://127.0.0.1:8000/api/health
+echo.
+echo   Для включения раскомментируйте строки ниже:
+REM curl -s http://127.0.0.1:8000/health >nul 2>&1
+REM if %errorlevel% equ 0 (
+REM     echo ✅ /health endpoint отвечает
+REM ) else (
+REM     echo ❌ /health endpoint не отвечает
+REM )
+echo.
+
 echo Нажмите любую клавишу для выхода...
 pause >nul

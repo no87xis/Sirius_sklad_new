@@ -55,6 +55,12 @@ async def root(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("index.html", {"request": request, "current_user": current_user})
 
 
+@app.get("/health")
+async def health_check():
+    """Быстрая проверка здоровья приложения"""
+    return {"status": "ok"}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
