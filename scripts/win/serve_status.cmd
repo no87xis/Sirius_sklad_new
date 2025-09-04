@@ -24,7 +24,7 @@ if exist "logs\uvicorn-dev.pid" (
     echo ✅ PID файл найден: %SERVER_PID%
     
     REM Проверяем, существует ли процесс
-    tasklist /fi "PID eq %SERVER_PID%" | findstr %SERVER_PID% >nul
+    tasklist /fi "PID eq %SERVER_PID%" 2>nul | findstr "%SERVER_PID%" >nul
     if %errorlevel% equ 0 (
         echo ✅ Процесс активен (PID: %SERVER_PID%)
     ) else (

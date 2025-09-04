@@ -66,7 +66,18 @@ echo Сервер будет доступен по адресу: http://127.0.0.
 echo.
 
 REM Запускаем uvicorn в отдельном окне с редиректом вывода
-start "" cmd /c "venv\Scripts\activate.bat && python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --log-level info > logs\uvicorn-dev.log 2>&1 & echo %%~dpnx0 > logs\uvicorn-dev.pid"
+start "" cmd /c "venv\Scripts\activate.bat && python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --log-level info > logs\uvicorn-dev.log 2>&1"
+
+REM Ждем запуска сервера
+timeout /t 3 /nobreak >nul
+
+REM Находим PID процесса uvicorn и сохраняем
+for /f "tokens=2" %%i in ('tasklist /fi "imagename eq python.exe" /fo csv ^| findstr /v "INFO"') do (
+    echo %%i > logs\uvicorn-dev.pid
+    goto :pid_saved
+)
+echo 0 > logs\uvicorn-dev.pid
+:pid_saved
 
 REM Ждем немного и проверяем, что сервер запустился
 timeout /t 3 /nobreak >nul
