@@ -29,3 +29,8 @@ UI И ЯЗЫК:
 ---
 
 *Копия правил из .cursor/rules/conventions.mdc*
+
+
+
+
+

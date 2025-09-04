@@ -1,4 +1,4 @@
-from app.models.order import OrderStatus
+from .order_status_enum import OrderStatus
 
 # Отображаемые названия статусов
 ORDER_STATUS_DISPLAY = {
@@ -72,3 +72,4 @@ def get_all_statuses() -> list:
         (OrderStatus.SELF_PICKUP, get_status_display(OrderStatus.SELF_PICKUP)),
         (OrderStatus.OTHER, get_status_display(OrderStatus.OTHER))
     ]
+

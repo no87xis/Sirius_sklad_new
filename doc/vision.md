@@ -102,3 +102,8 @@
 ---
 
 *Техническое видение основано на doc/project_overview.md, doc/ui_inventory.md, doc/api_catalog.md, doc/data_model.md, doc/flows.md*
+
+
+
+
+

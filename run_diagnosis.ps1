@@ -32,3 +32,8 @@ if ($LASTEXITCODE -eq 0) {
 Write-Host "==================================================" -ForegroundColor Blue
 Write-Host "Нажмите любую клавишу для продолжения..." -ForegroundColor Yellow
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+
+
+
+
+

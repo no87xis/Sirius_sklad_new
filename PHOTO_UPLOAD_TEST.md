@@ -24,7 +24,7 @@
 
 ### 1. Запуск сервера
 ```bash
-uvicorn app.main:app --reload
+scripts\win\serve_dev.cmd
 ```
 
 ### 2. Тестирование создания товара с фото

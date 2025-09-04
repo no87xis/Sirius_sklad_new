@@ -18,3 +18,8 @@
 ---
 
 *Копия процесса из .cursor/rules/workflow.mdc*
+
+
+
+
+

@@ -8,6 +8,53 @@ from ..schemas.order import OrderCreate, OrderUpdate, OrderStatusUpdate
 from ..services.products import calculate_stock
 from fastapi import HTTPException, status
 
+
+class OrderService:
+    """Сервис для работы с заказами"""
+    
+    def __init__(self, db: Session):
+        self.db = db
+    
+    def get_orders(self, skip: int = 0, limit: int = 100, status_filter: Optional[str] = None) -> List[Order]:
+        """Получить список заказов с фильтрацией по статусу"""
+        return get_orders(self.db, skip, limit, status_filter)
+    
+    def get_order(self, order_id: int) -> Optional[Order]:
+        """Получить заказ по ID"""
+        return get_order(self.db, order_id)
+    
+    def create_order(self, order_data: OrderCreate, user_id: str) -> Order:
+        """Создать новый заказ"""
+        return create_order(self.db, order_data, user_id)
+    
+    def update_order(self, order_id: int, order_data: OrderUpdate) -> Optional[Order]:
+        """Обновить заказ"""
+        return update_order(self.db, order_id, order_data)
+    
+    def update_order_status(self, order_id: int, status_data: OrderStatusUpdate) -> Optional[Order]:
+        """Обновить статус заказа"""
+        return update_order_status(self.db, order_id, status_data)
+    
+    def delete_order(self, order_id: int) -> bool:
+        """Удалить заказ"""
+        return delete_order(self.db, order_id)
+    
+    def get_order_statistics(self) -> dict:
+        """Получить статистику по заказам"""
+        return get_order_statistics(self.db)
+    
+    def get_orders_by_product(self, product_id: int, skip: int = 0, limit: int = 100) -> List[Order]:
+        """Получить заказы по товару"""
+        return get_orders_by_product(self.db, product_id, skip, limit)
+    
+    def get_orders_by_phone(self, phone: str, skip: int = 0, limit: int = 100) -> List[Order]:
+        """Получить заказы по номеру телефона"""
+        return get_orders_by_phone(self.db, phone, skip, limit)
+    
+    def get_last_eur_rate(self) -> Decimal:
+        """Получить последний курс евро из заказов"""
+        return get_last_eur_rate(self.db)
+
 def get_orders(db: Session, skip: int = 0, limit: int = 100, status_filter: Optional[str] = None) -> List[Order]:
     """Получить список заказов с фильтрацией по статусу"""
     query = db.query(Order)

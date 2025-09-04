@@ -74,3 +74,8 @@ def get_delivery_display_name(delivery_option: DeliveryOption) -> str:
         Отображаемое название
     """
     return DELIVERY_OPTIONS_DISPLAY.get(delivery_option, str(delivery_option))
+
+
+
+
+

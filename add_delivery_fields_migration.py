@@ -48,3 +48,8 @@ def run_migration():
 if __name__ == "__main__":
     success = run_migration()
     exit(0 if success else 1)
+
+
+
+
+

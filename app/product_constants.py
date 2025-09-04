@@ -19,3 +19,8 @@ PRODUCT_STATUSES = [
 
 # Статус по умолчанию
 DEFAULT_STATUS = ProductStatus.IN_STOCK
+
+
+
+
+

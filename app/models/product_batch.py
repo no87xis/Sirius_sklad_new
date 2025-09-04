@@ -60,3 +60,8 @@ class ProductBatch(Base):
             return float(self.preorder_price_rub)
         else:
             return None
+
+
+
+
+
